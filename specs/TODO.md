@@ -3,7 +3,7 @@
 ## 🔧 Setup Inicial & Infraestructura
 
 - [ ] **Configurar** monorepo con TurboRepo/NX incluyendo apps (frontend, backend) y packages (contracts, shared, types) `#prioridad`
-- [ ] **Inicializar** proyecto Next.js 14+ con TypeScript en `apps/frontend`
+- [ ] **Inicializar** proyecto Next.js 15+ con TypeScript en `apps/frontend`
 - [ ] **Inicializar** proyecto Express.js con TypeScript en `apps/backend`
 - [ ] **Configurar** Supabase proyecto con PostgreSQL y Auth habilitado `#prioridad`
 - [ ] **Instalar** Stellar CLI y configurar entorno para Soroban development
