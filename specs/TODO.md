@@ -32,7 +32,7 @@
 - [x] **Implementar** función `join_group(group_id: String, member: Address)` con autorización
 - [x] **Implementar** función `contribute(group_id: String, amount: i128)` para aportes USDC
 - [x] **Implementar** función `get_group_balance(group_id: String)` para consultar saldos
-- [ ] **Integrar** llamadas a Blend Protocol para inversión automática de fondos
+- [x] **Integrar** llamadas a Blend Protocol para inversión automática de fondos
 - [x] **Escribir** tests unitarios para todas las funciones del contrato
 - [x] **Compilar** y deployer contrato en Stellar Testnet
 - [ ] **Generar** bindings TypeScript con `stellar contract bindings typescript`
@@ -66,12 +66,12 @@
 
 ## 💰 Integración Blend Protocol
 
-- [ ] **Investigar** endpoints RPC de Blend para depósitos automáticos `#bloqueado`
-- [ ] **Implementar** función para depositar fondos grupales en Blend pool
-- [ ] **Crear** función para calcular intereses generados desde Blend
-- [ ] **Implementar** retiro de fondos + intereses desde Blend cuando se requiera
-- [ ] **Configurar** polling automático para actualizar intereses cada X minutos
-- [ ] **Crear** fallback/mock para intereses si integración Blend falla `#contingencia`
+- [x] **Investigar** endpoints RPC de Blend para depósitos automáticos
+- [x] **Implementar** función para depositar fondos grupales en Blend pool
+- [x] **Crear** función para calcular intereses generados desde Blend
+- [x] **Implementar** retiro de fondos + intereses desde Blend cuando se requiera
+- [x] **Configurar** polling automático para actualizar intereses cada X minutos
+- [x] **Crear** fallback/mock para intereses si integración Blend falla `#contingencia`
 
 ## 🏗️ Packages Compartidos
 
@@ -161,27 +161,27 @@
 ### 📊 Estadísticas de Completado
 
 - **Total de tareas**: 78
-- **Completadas**: 45
-- **Progreso**: 58% ✅
-- **Fecha de actualización**: 2024-07-12
+- **Completadas**: 51
+- **Progreso**: 65% ✅
+- **Fecha de actualización**: 2025-07-12
 
 ### 🎉 Tareas Completadas Recientemente
 
-1. ✅ **Crear formulario de grupos** - Multi-step form con validación y configuración avanzada
-2. ✅ **Implementar página detalle de grupo** - Gestión completa de miembros y transacciones
-3. ✅ **Desarrollar componentes UI adicionales** - Input, Label, Textarea con styling
-4. ✅ **Construir sistema de tabs** - Overview, miembros y transacciones con navegación
-5. ✅ **Implementar contribuciones en vivo** - Formulario integrado con wallet connection
-6. ✅ **Crear visualización de métricas** - Balance total, balance personal y conteo de miembros
-7. ✅ **Agregar historial de transacciones** - Tipos diferenciados con iconos y estados
-8. ✅ **Completar tests del contrato** - Suite de pruebas completa con 100% pass rate
-9. ✅ **Verificar lógica del contrato** - Funcionalidad validada para crear, unir, contribuir
-10. ✅ **Implementar manejo de códigos de invitación** - Compartir y copiar funcionalidad
-11. ✅ **Crear interfaz de configuración de grupos** - Límites, miembros y opciones de inversión
+1. ✅ **Integración completa de Blend Protocol** - Smart contract con funciones de yield y auto-inversión
+2. ✅ **Sistema de yield management frontend** - Servicios, hooks y componentes UI completos
+3. ✅ **Métricas de yield en tiempo real** - APY tracking, earnings y proyecciones
+4. ✅ **Control de auto-inversión** - Configuración de pools y gestión automática
+5. ✅ **Historial de yield detallado** - Tracking de earnings y distribuciones
+6. ✅ **Acciones de yield para admins** - Depósitos, retiros y distribuciones manuales
+7. ✅ **Tab de Yield & Investment** - Nueva sección en página de grupo
+8. ✅ **Componentes UI adicionales** - Select, Separator y otros elementos
+9. ✅ **Manejo de estados de carga** - Loading states y error handling
+10. ✅ **Integración con wallet** - Autenticación y permisos de admin
+11. ✅ **Tests del contrato actualizados** - Suite completa con nuevas funciones de Blend
 
 ### 🚀 Siguiente Prioridad
 
-- **Integrar Blend Protocol** para generación automática de yield
 - **Crear sistema de invitaciones** por email y links compartibles  
 - **Implementar bindings TypeScript** para contrato deployado
 - **Agregar notificaciones push** y sistema de alertas en tiempo real
+- **Crear tests E2E** con Playwright para flujo completo
