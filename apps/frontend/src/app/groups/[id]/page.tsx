@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { WalletConnection } from '@/lib/stellar';
 import { formatCurrency, formatDate, truncateAddress } from '@/lib/utils';
+import { GroupService, GroupData, GroupMember } from '@/lib/groups';
 import { useYield } from '@/hooks/use-yield';
 import { YieldMetrics } from '@/components/yield/yield-metrics';
 import { AutoInvestControl } from '@/components/yield/auto-invest-control';
@@ -40,18 +41,6 @@ import {
   Loader2
 } from 'lucide-react';
 
-interface GroupMember {
-  id: string;
-  address: string;
-  fullName?: string;
-  avatarUrl?: string;
-  role: 'admin' | 'member';
-  balance: number;
-  totalContributed: number;
-  yieldEarned: number;
-  joinedAt: string;
-}
-
 interface Transaction {
   id: string;
   type: 'contribution' | 'withdrawal' | 'yield_distribution';
@@ -62,26 +51,6 @@ interface Transaction {
   description: string;
   stellarTxId?: string;
   status: 'pending' | 'confirmed' | 'failed';
-  createdAt: string;
-}
-
-interface GroupData {
-  id: string;
-  name: string;
-  description?: string;
-  creatorId: string;
-  inviteCode: string;
-  status: 'active' | 'paused' | 'closed';
-  settings: {
-    minContribution: number;
-    maxContribution: number;
-    withdrawalRequiresApproval: boolean;
-    maxMembers: number;
-    autoInvestEnabled: boolean;
-  };
-  totalBalance: number;
-  totalYield: number;
-  memberCount: number;
   createdAt: string;
 }
 
@@ -144,78 +113,24 @@ export default function GroupDetailPage() {
   const loadGroupData = async () => {
     setIsLoading(true);
     try {
-      // Mock data - replace with actual API calls
-      const mockGroup: GroupData = {
-        id: groupId,
-        name: 'Family Vacation Fund',
-        description: 'Saving up for our summer vacation to Europe',
-        creatorId: 'user1',
-        inviteCode: 'FAM2024',
-        status: 'active',
-        settings: {
-          minContribution: 50,
-          maxContribution: 1000,
-          withdrawalRequiresApproval: true,
-          maxMembers: 10,
-          autoInvestEnabled: true,
-        },
-        totalBalance: 3250.75,
-        totalYield: 125.30,
-        memberCount: 4,
-        createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-      };
+      // Load group data from smart contract
+      const groupData = await GroupService.getGroup(groupId);
+      if (!groupData) {
+        throw new Error('Group not found');
+      }
 
-      const mockMembers: GroupMember[] = [
-        {
-          id: '1',
-          address: 'GABC123...XYZ789',
-          fullName: 'John Doe',
-          role: 'admin',
-          balance: 1200.50,
-          totalContributed: 1150.00,
-          yieldEarned: 50.50,
-          joinedAt: mockGroup.createdAt,
-        },
-        {
-          id: '2',
-          address: 'GDEF456...ABC123',
-          fullName: 'Jane Smith',
-          role: 'member',
-          balance: 850.25,
-          totalContributed: 800.00,
-          yieldEarned: 50.25,
-          joinedAt: new Date(Date.now() - 86400000 * 25).toISOString(),
-        },
-        {
-          id: '3',
-          address: 'GHIJ789...DEF456',
-          fullName: 'Bob Johnson',
-          role: 'member',
-          balance: 650.00,
-          totalContributed: 625.00,
-          yieldEarned: 25.00,
-          joinedAt: new Date(Date.now() - 86400000 * 20).toISOString(),
-        },
-        {
-          id: '4',
-          address: 'GKLM012...GHI789',
-          fullName: 'Alice Brown',
-          role: 'member',
-          balance: 550.00,
-          totalContributed: 530.00,
-          yieldEarned: 20.00,
-          joinedAt: new Date(Date.now() - 86400000 * 15).toISOString(),
-        },
-      ];
+      // Load group members
+      const groupMembers = await GroupService.getGroupMembers(groupId);
 
+      // Mock transactions for now - in production these would come from transaction indexing
       const mockTransactions: Transaction[] = [
         {
           id: '1',
           type: 'contribution',
           amount: 200,
           fee: 0.1,
-          userId: '1',
-          userName: 'John Doe',
+          userId: groupMembers[0]?.id || 'user1',
+          userName: groupMembers[0]?.fullName || 'Unknown User',
           description: 'Monthly contribution',
           stellarTxId: 'abc123...def456',
           status: 'confirmed',
@@ -232,26 +147,16 @@ export default function GroupDetailPage() {
           status: 'confirmed',
           createdAt: new Date(Date.now() - 86400000).toISOString(),
         },
-        {
-          id: '3',
-          type: 'contribution',
-          amount: 150,
-          fee: 0.1,
-          userId: '2',
-          userName: 'Jane Smith',
-          description: 'Contribution',
-          stellarTxId: 'ghi789...jkl012',
-          status: 'confirmed',
-          createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-        },
       ];
 
-      setGroup(mockGroup);
-      setMembers(mockMembers);
+      setGroup(groupData);
+      setMembers(groupMembers);
       setTransactions(mockTransactions);
       
       // Find current user's membership
-      const currentUserMembership = mockMembers.find(m => m.id === '1'); // Mock current user
+      // TODO: Get current user's address from wallet connection
+      const currentUserAddress = walletConnection?.publicKey || '';
+      const currentUserMembership = groupMembers.find(m => m.address === currentUserAddress);
       setUserMembership(currentUserMembership || null);
       
     } catch (error) {
@@ -290,15 +195,19 @@ export default function GroupDetailPage() {
 
     setIsContributing(true);
     try {
-      // TODO: Implement actual contribution logic
-      console.log('Contributing:', amount);
-      
-      // Simulate transaction
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Use GroupService to contribute to the group
+      const txHash = await GroupService.contribute(
+        {
+          groupId,
+          amount,
+          tokenAddress: 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA', // Mock USDC
+        },
+        walletConnection
+      );
       
       toast({
         title: 'Contribution Successful',
-        description: `Successfully contributed ${formatCurrency(amount)} to the group.`,
+        description: `Successfully contributed ${formatCurrency(amount)} to the group. Transaction: ${txHash.substring(0, 8)}...`,
       });
       
       setContributionAmount('');

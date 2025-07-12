@@ -1,4 +1,5 @@
 import { StellarService, WalletConnection } from './stellar';
+import { ContractService } from './contract';
 
 export interface BlendPoolInfo {
   poolId: string;
@@ -38,6 +39,7 @@ export interface YieldHistoryEntry {
 export class BlendService {
   private static readonly BLEND_POOL_CONTRACT = process.env.NEXT_PUBLIC_BLEND_POOL_CONTRACT || '';
   private static readonly COMMUNITY_WALLET_CONTRACT = process.env.NEXT_PUBLIC_COMMUNITY_WALLET_CONTRACT || '';
+  private static contractService = new ContractService();
 
   /**
    * Get available Blend pools for investment
@@ -74,7 +76,13 @@ export class BlendService {
    */
   static async getGroupYieldInfo(groupId: string): Promise<GroupYieldData> {
     try {
-      // TODO: Replace with actual smart contract calls
+      // Get group data from smart contract
+      const group = await this.contractService.getGroup(groupId);
+      const groupYield = await this.contractService.getGroupYield(groupId);
+      const isAutoInvestEnabled = await this.contractService.isAutoInvestEnabled(groupId);
+      const blendPoolAddress = await this.contractService.getBlendPool();
+
+      // Mock yield history for now - in production this would come from indexing contract events
       const mockYieldHistory: YieldHistoryEntry[] = [
         {
           date: new Date(Date.now() - 86400000 * 7).toISOString(),
@@ -94,14 +102,17 @@ export class BlendService {
         },
       ];
 
+      const currentYieldAmount = ContractService.fromContractAmount(groupYield);
+      const totalInvested = group ? ContractService.fromContractAmount(group.total_balance) : 0;
+
       return {
         groupId,
-        totalInvested: 2500.00,
-        currentYield: 125.30,
-        projectedYield: 185.75,
+        totalInvested,
+        currentYield: currentYieldAmount,
+        projectedYield: currentYieldAmount * 1.5, // Estimate based on current yield
         yieldHistory: mockYieldHistory,
-        isAutoInvestEnabled: true,
-        blendPoolId: 'blend_usdc_pool_1',
+        isAutoInvestEnabled,
+        blendPoolId: blendPoolAddress ? 'blend_usdc_pool_1' : undefined,
       };
     } catch (error) {
       console.error('Error fetching group yield info:', error);
@@ -122,18 +133,18 @@ export class BlendService {
         throw new Error('Wallet not connected');
       }
 
-      // TODO: Build actual contract transaction
-      const operations = [
-        // Contract call to enable auto-invest
-        // This would call our community wallet contract's set_blend_pool function
-      ];
+      const walletKit = await this.contractService.getWalletConnection();
+      const publicKey = await walletKit.getPublicKey();
+      
+      // Set Blend pool address for auto-invest
+      const txHash = await this.contractService.setBlendPool(
+        publicKey.publicKey,
+        blendPoolId,
+        walletKit
+      );
 
-      console.log('Enabling auto-invest for group:', groupId, 'with pool:', blendPoolId);
-      
-      // For now, simulate transaction
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      return 'mock_tx_hash_enable_auto_invest';
+      console.log('Enabled auto-invest for group:', groupId, 'tx:', txHash);
+      return txHash;
     } catch (error) {
       console.error('Error enabling auto-invest:', error);
       throw new Error('Failed to enable auto-invest');
@@ -152,13 +163,18 @@ export class BlendService {
         throw new Error('Wallet not connected');
       }
 
-      // TODO: Build actual contract transaction
-      console.log('Disabling auto-invest for group:', groupId);
+      const walletKit = await this.contractService.getWalletConnection();
+      const publicKey = await walletKit.getPublicKey();
       
-      // For now, simulate transaction
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      return 'mock_tx_hash_disable_auto_invest';
+      // Clear Blend pool address to disable auto-invest (set to empty string)
+      const txHash = await this.contractService.setBlendPool(
+        publicKey.publicKey,
+        '',
+        walletKit
+      );
+
+      console.log('Disabled auto-invest for group:', groupId, 'tx:', txHash);
+      return txHash;
     } catch (error) {
       console.error('Error disabling auto-invest:', error);
       throw new Error('Failed to disable auto-invest');
@@ -182,17 +198,23 @@ export class BlendService {
         throw new Error('Invalid deposit amount');
       }
 
-      // TODO: Build actual contract transaction
-      const operations = [
-        // Contract call to deposit_to_blend function
-      ];
+      const walletKit = await this.contractService.getWalletConnection();
+      const contractAmount = ContractService.toContractAmount(amount);
+      
+      // Use USDC token address (this would be configured)
+      const tokenAddress = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA'; // Mock USDC address
 
-      console.log('Depositing to Blend:', { groupId, amount });
-      
-      // For now, simulate transaction
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      return 'mock_tx_hash_blend_deposit';
+      const txHash = await this.contractService.depositToBlend(
+        {
+          groupId,
+          amount: contractAmount,
+          tokenAddress,
+        },
+        walletKit
+      );
+
+      console.log('Deposited to Blend:', { groupId, amount, txHash });
+      return txHash;
     } catch (error) {
       console.error('Error depositing to Blend:', error);
       throw new Error('Failed to deposit to Blend protocol');
@@ -216,13 +238,25 @@ export class BlendService {
         throw new Error('Invalid withdrawal amount');
       }
 
-      // TODO: Build actual contract transaction
-      console.log('Withdrawing from Blend:', { groupId, amount });
+      const walletKit = await this.contractService.getWalletConnection();
+      const publicKey = await walletKit.getPublicKey();
+      const contractAmount = ContractService.toContractAmount(amount);
       
-      // For now, simulate transaction
-      await new Promise(resolve => setTimeout(resolve, 2500));
-      
-      return 'mock_tx_hash_blend_withdrawal';
+      // Use USDC token address (this would be configured)
+      const tokenAddress = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA'; // Mock USDC address
+
+      const txHash = await this.contractService.withdrawFromBlend(
+        publicKey.publicKey,
+        {
+          groupId,
+          amount: contractAmount,
+          tokenAddress,
+        },
+        walletKit
+      );
+
+      console.log('Withdrew from Blend:', { groupId, amount, txHash });
+      return txHash;
     } catch (error) {
       console.error('Error withdrawing from Blend:', error);
       throw new Error('Failed to withdraw from Blend protocol');
@@ -241,13 +275,12 @@ export class BlendService {
         throw new Error('Wallet not connected');
       }
 
-      // TODO: Build actual contract transaction
-      console.log('Distributing yield for group:', groupId);
+      const walletKit = await this.contractService.getWalletConnection();
       
-      // For now, simulate transaction
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      return 'mock_tx_hash_yield_distribution';
+      const txHash = await this.contractService.distributeYield(groupId, walletKit);
+
+      console.log('Distributed yield for group:', groupId, 'tx:', txHash);
+      return txHash;
     } catch (error) {
       console.error('Error distributing yield:', error);
       throw new Error('Failed to distribute yield');
