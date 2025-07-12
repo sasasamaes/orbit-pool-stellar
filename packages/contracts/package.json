@@ -1,0 +1,27 @@
+{
+  "name": "community-wallet-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart contracts for Community Wallet using Soroban",
+  "scripts": {
+    "build": "stellar contract build",
+    "test": "cargo test",
+    "deploy": "stellar contract deploy --wasm target/wasm32-unknown-unknown/release/community_wallet.wasm --network testnet",
+    "bindings": "stellar contract bindings typescript --output-dir bindings --contract-id $(cat .soroban/contract-id) --network testnet",
+    "clean": "cargo clean"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "stellar",
+    "soroban",
+    "smart-contracts",
+    "rust",
+    "blockchain"
+  ]
+}

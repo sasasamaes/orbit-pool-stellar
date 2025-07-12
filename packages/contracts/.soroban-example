@@ -1,0 +1,45 @@
+# Soroban CLI Commands for Community Wallet Project
+
+## Network Configuration
+# Add testnet (already done)
+soroban network add testnet --rpc-url https://soroban-testnet.stellar.org:443 --network-passphrase "Test SDF Network ; September 2015"
+
+## Identity Management  
+# Generate development identity (already done)
+soroban keys generate --no-fund dev
+
+# Fund the development account
+soroban keys fund dev --network testnet
+
+## Contract Development
+# Initialize new contract
+soroban contract init . --name community_wallet
+
+# Build contract
+soroban contract build
+
+# Deploy contract to testnet
+soroban contract deploy --wasm target/wasm32-unknown-unknown/release/community_wallet.wasm --network testnet --source dev
+
+# Generate TypeScript bindings
+soroban contract bindings typescript --output-dir bindings --contract-id CONTRACT_ID --network testnet
+
+## Useful Commands
+# List networks
+soroban network ls
+
+# List identities  
+soroban keys ls
+
+# Show identity address
+soroban keys address dev
+
+# Contract invoke example
+soroban contract invoke --id CONTRACT_ID --source dev --network testnet -- function_name --arg1 value1
+
+## Environment Setup
+# Install WebAssembly target (required)
+rustup target add wasm32-unknown-unknown
+
+# Update Rust (if needed)
+rustup update 
