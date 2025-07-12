@@ -27,13 +27,13 @@
 
 ## 🔐 Smart Contracts (Soroban)
 
-- [ ] **Crear** contrato Soroban básico para gestión de grupos en `packages/contracts`
-- [ ] **Implementar** función `create_group(creator: Address, name: String)` con validaciones
-- [ ] **Implementar** función `join_group(group_id: String, member: Address)` con autorización
-- [ ] **Implementar** función `contribute(group_id: String, amount: i128)` para aportes USDC
-- [ ] **Implementar** función `get_group_balance(group_id: String)` para consultar saldos
+- [x] **Crear** contrato Soroban básico para gestión de grupos en `packages/contracts`
+- [x] **Implementar** función `create_group(creator: Address, name: String)` con validaciones
+- [x] **Implementar** función `join_group(group_id: String, member: Address)` con autorización
+- [x] **Implementar** función `contribute(group_id: String, amount: i128)` para aportes USDC
+- [x] **Implementar** función `get_group_balance(group_id: String)` para consultar saldos
 - [ ] **Integrar** llamadas a Blend Protocol para inversión automática de fondos
-- [ ] **Escribir** tests unitarios para todas las funciones del contrato
+- [x] **Escribir** tests unitarios para todas las funciones del contrato
 - [ ] **Compilar** y deployer contrato en Stellar Testnet
 - [ ] **Generar** bindings TypeScript con `stellar contract bindings typescript`
 
@@ -43,26 +43,26 @@
 - [x] **Implementar** layout principal con navegación responsive
 - [x] **Crear** páginas principales:
   - [x] `/` - landing page
-  - [ ] `/dashboard` - dashboard principal
+  - [x] `/dashboard` - dashboard principal
   - [ ] `/groups/new` - crear grupo
   - [ ] `/groups/[id]` - detalle de grupo
-- [ ] **Implementar** componente AuthWrapper para rutas protegidas
-- [ ] **Crear** componente ConnectWallet para integración Freighter/Lobstr
+- [x] **Implementar** componente AuthWrapper para rutas protegidas
+- [x] **Crear** componente ConnectWallet para integración Freighter/Lobstr
 - [ ] **Implementar** formulario crear grupo con validación client-side
-- [ ] **Crear** dashboard con visualización de saldos, intereses y transacciones
+- [x] **Crear** dashboard con visualización de saldos, intereses y transacciones
 - [ ] **Implementar** sistema de invitaciones por email/link
 - [ ] **Configurar** manejo de estados global con Zustand o Context API
 
 ## 🔗 Integración Stellar & Wallets
 
 - [x] **Instalar** `@stellar/freighter-api` y `@creit.tech/stellar-wallets-kit`
-- [ ] **Implementar** detección y conexión automática de wallets Stellar
-- [ ] **Crear** utilidades para firmar transacciones con wallet conectado
-- [ ] **Implementar** función para transferir USDC desde wallet a contrato de grupo
-- [ ] **Configurar** notificaciones de transacciones exitosas/fallidas
-- [ ] **Implementar** validación de balances USDC antes de transacciones
-- [ ] **Crear** componente para mostrar dirección Stellar conectada
-- [ ] **Manejar** errores de conexión wallet y timeouts de transacción
+- [x] **Implementar** detección y conexión automática de wallets Stellar
+- [x] **Crear** utilidades para firmar transacciones con wallet conectado
+- [x] **Implementar** función para transferir USDC desde wallet a contrato de grupo
+- [x] **Configurar** notificaciones de transacciones exitosas/fallidas
+- [x] **Implementar** validación de balances USDC antes de transacciones
+- [x] **Crear** componente para mostrar dirección Stellar conectada
+- [x] **Manejar** errores de conexión wallet y timeouts de transacción
 
 ## 💰 Integración Blend Protocol
 
@@ -161,27 +161,27 @@
 ### 📊 Estadísticas de Completado
 
 - **Total de tareas**: 78
-- **Completadas**: 25
-- **Progreso**: 32% ✅
+- **Completadas**: 40
+- **Progreso**: 51% ✅
 - **Fecha de actualización**: 2024-07-12
 
 ### 🎉 Tareas Completadas Recientemente
 
-1. ✅ **Configurar Supabase proyecto** - PostgreSQL y Auth habilitado con esquema completo
-2. ✅ **Implementar esquema de base de datos** - 9 tablas con relaciones y RLS policies
-3. ✅ **Crear endpoints REST API** - CRUD completo para grupos, usuarios y contribuciones
-4. ✅ **Implementar middleware de autenticación** - JWT validation con Supabase
-5. ✅ **Configurar servidor Express.js** - Middleware completo y manejo de errores
-6. ✅ **Implementar layout responsive** - Landing page con navegación y componentes UI
-7. ✅ **Configurar Next.js 14** - TypeScript, Tailwind CSS y estructura de componentes
-8. ✅ **Definir tipos TypeScript** - Interfaces completas para todas las entidades
-9. ✅ **Configurar providers** - Auth context, React Query y theme provider
-10. ✅ **Crear componentes UI base** - Button, Card, Badge con variants y styling
-11. ✅ **Configurar logging estructurado** - Winston con rotación diaria
+1. ✅ **Implementar AuthWrapper component** - Rutas protegidas con estados de carga
+2. ✅ **Crear ConnectWallet component** - Integración completa con Freighter wallet
+3. ✅ **Desarrollar páginas de autenticación** - Login y registro con Google OAuth
+4. ✅ **Construir dashboard principal** - Métricas, grupos y transacciones
+5. ✅ **Implementar contrato Soroban** - Smart contract completo para gestión de grupos
+6. ✅ **Crear funciones del contrato** - create_group, join_group, contribute, withdraw
+7. ✅ **Escribir tests unitarios** - Cobertura completa de funciones del contrato
+8. ✅ **Implementar servicios Stellar** - Utilidades para transacciones blockchain
+9. ✅ **Configurar detección de wallet** - Conexión automática y manejo de errores
+10. ✅ **Crear componentes Toast** - Sistema de notificaciones con Radix UI
+11. ✅ **Implementar balance tracking** - Visualización de USDC y XLM en tiempo real
 
 ### 🚀 Siguiente Prioridad
 
-- **Implementar componente AuthWrapper** para rutas protegidas
-- **Crear componente ConnectWallet** para integración Freighter/Lobstr
-- **Implementar páginas principales** - Dashboard, crear grupo, detalle de grupo
-- **Resolver configuración Rust** y crear contrato Soroban básico
+- **Implementar formulario crear grupo** con validación client-side
+- **Crear páginas detalle de grupo** - Gestión de miembros y transacciones
+- **Compilar y deployar contrato** en Stellar Testnet
+- **Integrar Blend Protocol** para generación automática de yield
