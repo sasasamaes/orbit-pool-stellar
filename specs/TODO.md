@@ -34,7 +34,7 @@
 - [x] **Implementar** función `get_group_balance(group_id: String)` para consultar saldos
 - [ ] **Integrar** llamadas a Blend Protocol para inversión automática de fondos
 - [x] **Escribir** tests unitarios para todas las funciones del contrato
-- [ ] **Compilar** y deployer contrato en Stellar Testnet
+- [x] **Compilar** y deployer contrato en Stellar Testnet
 - [ ] **Generar** bindings TypeScript con `stellar contract bindings typescript`
 
 ## 🎨 Frontend (Next.js)
@@ -44,11 +44,11 @@
 - [x] **Crear** páginas principales:
   - [x] `/` - landing page
   - [x] `/dashboard` - dashboard principal
-  - [ ] `/groups/new` - crear grupo
-  - [ ] `/groups/[id]` - detalle de grupo
+  - [x] `/groups/new` - crear grupo
+  - [x] `/groups/[id]` - detalle de grupo
 - [x] **Implementar** componente AuthWrapper para rutas protegidas
 - [x] **Crear** componente ConnectWallet para integración Freighter/Lobstr
-- [ ] **Implementar** formulario crear grupo con validación client-side
+- [x] **Implementar** formulario crear grupo con validación client-side
 - [x] **Crear** dashboard con visualización de saldos, intereses y transacciones
 - [ ] **Implementar** sistema de invitaciones por email/link
 - [ ] **Configurar** manejo de estados global con Zustand o Context API
@@ -161,27 +161,27 @@
 ### 📊 Estadísticas de Completado
 
 - **Total de tareas**: 78
-- **Completadas**: 40
-- **Progreso**: 51% ✅
+- **Completadas**: 45
+- **Progreso**: 58% ✅
 - **Fecha de actualización**: 2024-07-12
 
 ### 🎉 Tareas Completadas Recientemente
 
-1. ✅ **Implementar AuthWrapper component** - Rutas protegidas con estados de carga
-2. ✅ **Crear ConnectWallet component** - Integración completa con Freighter wallet
-3. ✅ **Desarrollar páginas de autenticación** - Login y registro con Google OAuth
-4. ✅ **Construir dashboard principal** - Métricas, grupos y transacciones
-5. ✅ **Implementar contrato Soroban** - Smart contract completo para gestión de grupos
-6. ✅ **Crear funciones del contrato** - create_group, join_group, contribute, withdraw
-7. ✅ **Escribir tests unitarios** - Cobertura completa de funciones del contrato
-8. ✅ **Implementar servicios Stellar** - Utilidades para transacciones blockchain
-9. ✅ **Configurar detección de wallet** - Conexión automática y manejo de errores
-10. ✅ **Crear componentes Toast** - Sistema de notificaciones con Radix UI
-11. ✅ **Implementar balance tracking** - Visualización de USDC y XLM en tiempo real
+1. ✅ **Crear formulario de grupos** - Multi-step form con validación y configuración avanzada
+2. ✅ **Implementar página detalle de grupo** - Gestión completa de miembros y transacciones
+3. ✅ **Desarrollar componentes UI adicionales** - Input, Label, Textarea con styling
+4. ✅ **Construir sistema de tabs** - Overview, miembros y transacciones con navegación
+5. ✅ **Implementar contribuciones en vivo** - Formulario integrado con wallet connection
+6. ✅ **Crear visualización de métricas** - Balance total, balance personal y conteo de miembros
+7. ✅ **Agregar historial de transacciones** - Tipos diferenciados con iconos y estados
+8. ✅ **Completar tests del contrato** - Suite de pruebas completa con 100% pass rate
+9. ✅ **Verificar lógica del contrato** - Funcionalidad validada para crear, unir, contribuir
+10. ✅ **Implementar manejo de códigos de invitación** - Compartir y copiar funcionalidad
+11. ✅ **Crear interfaz de configuración de grupos** - Límites, miembros y opciones de inversión
 
 ### 🚀 Siguiente Prioridad
 
-- **Implementar formulario crear grupo** con validación client-side
-- **Crear páginas detalle de grupo** - Gestión de miembros y transacciones
-- **Compilar y deployar contrato** en Stellar Testnet
 - **Integrar Blend Protocol** para generación automática de yield
+- **Crear sistema de invitaciones** por email y links compartibles  
+- **Implementar bindings TypeScript** para contrato deployado
+- **Agregar notificaciones push** y sistema de alertas en tiempo real
