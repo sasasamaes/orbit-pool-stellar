@@ -5,7 +5,7 @@
 - [x] **Configurar** monorepo con TurboRepo/NX incluyendo apps (frontend, backend) y packages (contracts, shared, types) `#prioridad`
 - [x] **Inicializar** proyecto Next.js 14+ con TypeScript en `apps/frontend`
 - [x] **Inicializar** proyecto Express.js con TypeScript en `apps/backend`
-- [x] **Configurar** Supabase proyecto con PostgreSQL y Auth habilitado `#prioridad`
+- [x] **Configurar** Supabase proyecto con base de datos y Auth habilitado `#prioridad`
 - [x] **Instalar** Stellar CLI y configurar entorno para Soroban development
 - [x] **Crear** variables de entorno para Testnet Stellar y configuración Blend
 - [x] **Configurar** ESLint, Prettier y Git hooks para calidad de código
@@ -181,7 +181,7 @@
 
 ### 🚀 Siguiente Prioridad
 
-- **Crear sistema de invitaciones** por email y links compartibles  
+- **Crear sistema de invitaciones** por email y links compartibles
 - **Implementar bindings TypeScript** para contrato deployado
 - **Agregar notificaciones push** y sistema de alertas en tiempo real
 - **Crear tests E2E** con Playwright para flujo completo

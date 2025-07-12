@@ -7,7 +7,7 @@ Backend de la aplicación de Wallet Grupal para Ahorro Comunitario.
 ### 🛠️ Tecnologías
 
 - Express.js con TypeScript
-- PostgreSQL (via Supabase)
+- Supabase (Base de datos y autenticación)
 - JWT Authentication
 - Stellar SDK para transacciones
 - Blend Protocol integration

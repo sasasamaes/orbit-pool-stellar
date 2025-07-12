@@ -34,7 +34,6 @@
     "@supabase/supabase-js": "^2.38.0",
     "@stellar/stellar-sdk": "^11.2.0",
     "@blend-capital/blend-sdk": "^0.8.0",
-    "pg": "^8.11.3",
     "ioredis": "^5.3.2",
     "winston": "^3.11.0",
     "winston-daily-rotate-file": "^4.7.1",
@@ -59,7 +58,6 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.6",
-    "@types/pg": "^8.10.9",
     "@types/uuid": "^9.0.7",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.14",
@@ -91,4 +89,4 @@
     "savings",
     "community"
   ]
-} 
+}

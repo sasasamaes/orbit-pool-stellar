@@ -85,7 +85,7 @@ communityWallet/
 
 - **Express.js** - API REST
 - **TypeScript** - Tipado estático
-- **PostgreSQL** - Base de datos (via Supabase)
+- **Supabase** - Base de datos y autenticación
 - **Stellar SDK** - Integración blockchain
 - **Blend SDK** - Protocolo DeFi
 
@@ -153,7 +153,8 @@ NEXT_PUBLIC_API_URL=http://localhost:5000
 #### Backend (.env)
 
 ```bash
-DATABASE_URL=postgresql://...
+SUPABASE_URL=https://...
+SUPABASE_SERVICE_ROLE_KEY=...
 SUPABASE_URL=https://...
 SUPABASE_SERVICE_ROLE_KEY=...
 JWT_SECRET=tu_jwt_secret

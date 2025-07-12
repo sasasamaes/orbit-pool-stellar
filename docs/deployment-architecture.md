@@ -22,7 +22,7 @@ graph TB
     end
 
     subgraph "🗄️ Database Layer"
-        SUPA["🔥 Supabase<br/>PostgreSQL"]
+        SUPA["🔥 Supabase<br/>Database"]
         REDIS["⚡ Redis Cache<br/>Session Store"]
         BACKUP["💾 Automated Backups"]
     end
@@ -123,7 +123,7 @@ graph TB
 
 ### 🗄️ Base de Datos
 
-**Supabase PostgreSQL**
+**Supabase Database**
 
 - **Managed Database**: Base de datos gestionada
 - **Real-time Subscriptions**: Actualizaciones en tiempo real
@@ -307,7 +307,8 @@ app.use(
 ```bash
 # Production Environment
 NODE_ENV=production
-DATABASE_URL=postgresql://...
+SUPABASE_URL=https://...
+SUPABASE_SERVICE_ROLE_KEY=...
 REDIS_URL=redis://...
 JWT_SECRET=...
 STELLAR_NETWORK=public

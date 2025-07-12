@@ -33,7 +33,7 @@
    Seguridad:
    Valida que el publicKey asociado corresponde al usuario autenticado via Supabase.
 3. Auth & Database (Supabase)
-   PostgreSQL para datos de usuario, grupos, membresías, historial de aportes/retiros.
+   Supabase para datos de usuario, grupos, membresías, historial de aportes/retiros.
    Supabase Auth: rápido y seguro para onboarding.
    Ventajas: evitas tener que construir tu propio backend de auth, social login listo para producción.
 4. Smart Contracts (Soroban + Blend)

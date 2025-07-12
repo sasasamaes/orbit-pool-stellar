@@ -48,7 +48,7 @@ Una app web que permite a las personas crear grupos, aportar fondos desde sus wa
 
 - **Frontend:** Next.js (React)
 - **Backend:** Express.js (Node)
-- **Base de datos y autenticación:** Supabase (PostgreSQL + Auth)
+- **Base de datos y autenticación:** Supabase (Database + Auth)
 - **Blockchain:** Stellar (StellarJS, SEP-7)
 - **Wallet:** Freighter y/o Lobstr
 - **DeFi:** Blend protocol (sobre Stellar)

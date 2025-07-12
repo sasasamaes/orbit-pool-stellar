@@ -9,7 +9,7 @@ graph TD
     B --> D["🔙 Backend Express.js"]
     B --> E["👛 Freighter Wallet"]
 
-    D --> F["🗄️ Supabase PostgreSQL"]
+    D --> F["🗄️ Supabase Database"]
     D --> G["⭐ Stellar Network"]
     D --> H["🏦 Blend Protocol"]
 
