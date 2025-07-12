@@ -86,40 +86,40 @@ communityWallet/
 
 ```bash
 # Instalar dependencias
-npm install
+bun install
 
 # Configurar entorno
 cp .env.example .env.local
 
 # Iniciar desarrollo
-npm run dev
+bun run dev
 
 # Ejecutar tests
-npm test
+bun test
 
 # Compilar para producción
-npm run build
+bun run build
 ```
 
 ### 🔧 Comandos Útiles
 
 ```bash
 # Monorepo commands
-npm run build:all        # Compilar todo
-npm run test:all         # Ejecutar todos los tests
-npm run lint:all         # Linting completo
+bun run build            # Compilar todo
+bun run test:all         # Ejecutar todos los tests
+bun run lint             # Linting completo
 
 # Frontend specific
-npm run dev:frontend     # Desarrollo frontend
-npm run build:frontend   # Compilar frontend
+bun run dev:frontend     # Desarrollo frontend
+bun run build:frontend   # Compilar frontend
 
 # Backend specific
-npm run dev:backend      # Desarrollo backend
-npm run build:backend    # Compilar backend
+bun run dev:backend      # Desarrollo backend
+bun run build:backend    # Compilar backend
 
 # Smart contracts
-npm run build:contracts  # Compilar contratos
-npm run deploy:contracts # Desplegar contratos
+bun run build:contracts  # Compilar contratos
+bun run deploy:contracts # Desplegar contratos
 ```
 
 ## 🎯 Casos de Uso Principales

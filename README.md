@@ -1,5 +1,11 @@
 # 🏦 Wallet Grupal para Ahorro Comunitario
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![Stellar](https://img.shields.io/badge/Stellar-7B2CBF?style=flat&logo=stellar&logoColor=white)](https://stellar.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white)](https://supabase.com/)
+
 ## 📋 Descripción
 
 Una aplicación innovadora que digitaliza las tradicionales "cajas de ahorro" permitiendo a comunidades, familias y grupos sociales crear fondos comunes de manera segura y transparente. Utiliza la tecnología blockchain de Stellar para facilitar el ahorro colectivo y la generación de intereses mediante el protocolo DeFi Blend.
@@ -12,285 +18,347 @@ Facilitar el ahorro colectivo y la inversión para comunidades en Latinoamérica
 
 - ✅ Permitir crear o unirse a "cajas de ahorro" digitales grupales
 - ✅ Realizar aportes y retiros de manera sencilla y transparente
-- ✅ Invertir automáticamente los fondos comunitarios en Blend para obtener intereses
-- ✅ Brindar onboarding sencillo mediante autenticación social/magic link
-- ✅ Garantizar seguridad y transparencia en el manejo de fondos
-- ✅ Ofrecer visibilidad completa del ahorro, rendimiento y transacciones
+- ✅ Generar intereses automáticamente mediante Blend Protocol
+- ✅ Proporcionar transparencia total en el manejo de fondos
+- ✅ Ofrecer una experiencia de usuario intuitiva y segura
+
+## 🎨 Documentación y Diagramas
+
+### 📊 Diagramas Técnicos
+
+- **[🏗️ Arquitectura del Sistema](docs/architecture-diagram.md)** - Vista general del monorepo y stack tecnológico
+- **[👤 Flujo de Usuario](docs/user-flow-diagram.md)** - Experiencia completa del usuario
+- **[🗄️ Esquema de Base de Datos](docs/database-schema.md)** - Modelo de datos con 8 tablas principales
+- **[⭐ Integración Stellar & Blend](docs/stellar-blend-integration.md)** - Flujo de transacciones blockchain
+- **[🚀 Arquitectura de Deployment](docs/deployment-architecture.md)** - Infraestructura de producción
+
+### 📚 Documentación Técnica
+
+- **[📋 TODO Técnico](specs/TODO.md)** - 120+ tareas específicas para el MVP
+- **[📝 PRD](specs/prd.md)** - Product Requirements Document
+- **[🔧 Tech Flow](specs/tech-flow.md)** - Flujo técnico detallado
+- **[📖 Guía Completa](docs/README.md)** - Índice completo de documentación
 
 ## 👥 Usuarios Objetivo
 
-- **Individuos o grupos** sin fácil acceso a servicios financieros
-- **Migrantes o jóvenes** con conocimiento digital básico/intermedio
-- **Community managers** que promueven el ahorro colaborativo
-- **Cooperativas y asociaciones** que buscan digitalizar sus procesos
+### 🏘️ Comunidades
+
+- **Barrios y vecindarios** que quieren ahorrar juntos
+- **Grupos familiares** con metas financieras comunes
+- **Organizaciones comunitarias** con proyectos específicos
+
+### 🎯 Casos de Uso
+
+- **Cajas de ahorro familiares** digitales
+- **Fondos comunitarios** para proyectos locales
+- **Grupos de inversión** pequeños y medianos
+- **Ahorro cooperativo** entre amigos
 
 ## 🏗️ Arquitectura Técnica
 
-### Stack Tecnológico
-
-**Frontend:**
-
-- Next.js con TypeScript
-- Tailwind CSS / Chakra UI
-- Supabase SDK para autenticación
-- Freighter API para integración con wallets Stellar
-
-**Backend:**
-
-- Express.js con TypeScript
-- API REST con validación JWT
-- Integración con Soroban/Stellar
-- Comunicación con protocolo Blend
-
-**Blockchain:**
-
-- Stellar Network (Testnet/Mainnet)
-- Soroban Smart Contracts (Rust)
-- Protocolo Blend para generación de intereses
-- USDC como token principal
-
-**Infraestructura:**
-
-- Supabase (Auth + PostgreSQL)
-- Monorepo con TurboRepo/NX
-
-## 🔄 Flujo Técnico
-
-### 1. Autenticación y Onboarding
-
-- Autenticación social (Google, Apple, Facebook) via Supabase
-- Magic Link y Email OTP
-- Conexión segura con wallet Stellar (Freighter/LOBSTR)
-
-### 2. Gestión de Grupos
-
-- Creación de grupos con reglas personalizables
-- Invitación de miembros via link/email
-- Definición de periodicidad y montos
-
-### 3. Aportes y Transacciones
-
-- Transferencias de USDC desde wallet personal
-- Firma de transacciones on-chain
-- Registro automático en base de datos
-
-### 4. Inversión Automática
-
-- Inversión de fondos grupales en protocolo Blend
-- Generación de intereses de manera automática
-- Transparencia total del rendimiento
-
-### 5. Retiros y Distribución
-
-- Retiros según reglas del grupo
-- Distribución automática de intereses
-- Auditoría completa de transacciones
-
-## 📁 Estructura del Proyecto
+### 📦 Estructura del Monorepo
 
 ```
 communityWallet/
 ├── apps/
-│   ├── frontend/          # Aplicación Next.js
-│   └── backend/           # API Express.js
+│   ├── frontend/         # Next.js 14+ con TypeScript
+│   └── backend/          # Express.js con TypeScript
 ├── packages/
-│   ├── contracts/         # Smart contracts Soroban
+│   ├── contracts/        # Smart Contracts Soroban
 │   ├── shared/           # Utilidades compartidas
 │   └── types/            # Tipos TypeScript
-├── specs/                # Documentación técnica
-└── docs/                 # Documentación del proyecto
+├── docs/                 # Documentación técnica
+└── specs/                # Especificaciones del proyecto
 ```
 
-## 🚀 Instalación y Setup
+### 🛠️ Stack Tecnológico
 
-### Prerrequisitos
+#### Frontend
 
-- Node.js v18.14.1 o superior
-- npm/yarn
-- Stellar CLI
-- Cuenta en Supabase
-- Wallet Stellar (Freighter recomendado)
+- **Next.js 14+** - Framework React con SSR/SSG
+- **TypeScript** - Tipado estático
+- **Tailwind CSS** - Estilos utilitarios
+- **Supabase Auth** - Autenticación
+- **Freighter API** - Integración con wallets Stellar
 
-### Instalación
+#### Backend
+
+- **Express.js** - API REST
+- **TypeScript** - Tipado estático
+- **PostgreSQL** - Base de datos (via Supabase)
+- **Stellar SDK** - Integración blockchain
+- **Blend SDK** - Protocolo DeFi
+
+#### Blockchain
+
+- **Stellar Network** - Blockchain principal
+- **Soroban** - Smart contracts
+- **Blend Protocol** - Generación de intereses
+- **USDC** - Stablecoin principal
+
+#### Infraestructura
+
+- **Vercel** - Deployment frontend
+- **Railway** - Deployment backend
+- **Supabase** - Database y Auth
+- **Sentry** - Error tracking
+
+## 🚀 Instalación y Configuración
+
+### 📋 Prerrequisitos
 
 ```bash
-# Clonar el repositorio
+# Node.js 22+
+node --version
+
+# Bun
+bun --version
+
+# Stellar CLI
+stellar --version
+```
+
+### ⚙️ Configuración Inicial
+
+```bash
+# Clonar repositorio
 git clone https://github.com/tu-usuario/communityWallet.git
 cd communityWallet
 
 # Instalar dependencias
-npm install
+bun install
 
 # Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tus configuraciones
+cp .env.example .env.local
 
-# Compilar contratos
-npm run build:contracts
+# Configurar Supabase
+cp apps/frontend/.env.local.example apps/frontend/.env.local
+cp apps/backend/.env.example apps/backend/.env
 
 # Inicializar base de datos
-npm run db:setup
-
-# Iniciar en modo desarrollo
-npm run dev
+bun run db:setup
 ```
 
-### Configuración de Entorno
+### 🔧 Variables de Entorno
 
-```env
-# Supabase
-SUPABASE_URL=tu_supabase_url
-SUPABASE_ANON_KEY=tu_supabase_anon_key
-
-# Stellar
-STELLAR_NETWORK=testnet
-STELLAR_RPC_URL=https://soroban-testnet.stellar.org:443
-STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
-
-# Blend Protocol
-BLEND_POOL_ADDRESS=tu_blend_pool_address
-```
-
-## 💡 Funcionalidades Principales
-
-### 🔐 Autenticación Segura
-
-- Login social con Google, Apple, Facebook
-- Magic Link y Email OTP
-- Integración con wallets Stellar
-
-### 👥 Gestión de Grupos
-
-- Creación de grupos con reglas personalizables
-- Invitación de miembros
-- Roles y permisos configurables
-
-### 💰 Manejo de Fondos
-
-- Aportes automáticos o manuales
-- Inversión en protocolo Blend
-- Generación de intereses
-- Retiros programados
-
-### 📊 Dashboard Completo
-
-- Saldos en tiempo real
-- Historial de transacciones
-- Rendimiento de inversiones
-- Proyecciones futuras
-
-### 🔍 Transparencia Total
-
-- Todas las transacciones en blockchain
-- Auditoría completa de movimientos
-- Visibilidad para todos los miembros
-
-## 🛠️ Comandos de Desarrollo
+#### Frontend (.env.local)
 
 ```bash
-# Desarrollo
-npm run dev              # Iniciar en modo desarrollo
-npm run build            # Compilar para producción
-npm run start            # Iniciar en producción
-
-# Contratos
-npm run build:contracts  # Compilar contratos Soroban
-npm run deploy:contracts # Desplegar contratos
-npm run test:contracts   # Ejecutar tests de contratos
-
-# Base de datos
-npm run db:setup         # Configurar base de datos
-npm run db:migrate       # Ejecutar migraciones
-npm run db:seed          # Poblar con datos de ejemplo
-
-# Testing
-npm run test             # Ejecutar todos los tests
-npm run test:e2e         # Tests end-to-end
-npm run test:unit        # Tests unitarios
+NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key
+NEXT_PUBLIC_STELLAR_NETWORK=testnet
+NEXT_PUBLIC_API_URL=http://localhost:5000
 ```
 
-## 🔗 Integración con Stellar y Blend
+#### Backend (.env)
 
-### Stellar Network
+```bash
+DATABASE_URL=postgresql://...
+SUPABASE_URL=https://...
+SUPABASE_SERVICE_ROLE_KEY=...
+JWT_SECRET=tu_jwt_secret
+STELLAR_NETWORK=testnet
+BLEND_PROTOCOL_URL=https://...
+```
 
-- Utiliza USDC como token principal
-- Transacciones seguras y transparentes
-- Costos de transacción ultra bajos
-- Confirmaciones rápidas
+### 🏃‍♂️ Desarrollo
 
-### Protocolo Blend
+```bash
+# Instalar dependencias
+bun install
 
-- Lending pools aislados para seguridad
-- Intereses competitivos
-- Backstop modules para protección
-- Liquidez profunda
+# Iniciar desarrollo (frontend + backend)
+bun run dev
 
-### Smart Contracts
+# O iniciar por separado
+bun run dev:frontend  # http://localhost:3000
+bun run dev:backend   # http://localhost:5000
 
-- Lógica de grupos y reglas
-- Gestión automática de fondos
-- Integración con Blend
-- Auditoría y transparencia
+# Compilar smart contracts
+bun run build:contracts
 
-## 📈 Roadmap
+# Ejecutar tests
+bun run test:all
+```
 
-### MVP (Fase 1)
+## 🔄 Flujo de Trabajo
 
-- [x] Autenticación social y web3
-- [x] Creación de grupos básicos
-- [x] Aportes y retiros
-- [x] Integración con Blend
-- [x] Dashboard fundamental
+### 1. Crear Grupo de Ahorro
 
-### Fase 2
+```typescript
+// Usuario administrador crea grupo
+const group = await createGroup({
+  name: "Ahorro Familiar 2024",
+  description: "Fondo para vacaciones familiares",
+  rules: {
+    minContribution: 50,
+    maxContribution: 1000,
+    withdrawalLimit: 500,
+    requiresApproval: true,
+  },
+});
+```
 
+### 2. Unirse a Grupo
+
+```typescript
+// Usuario se une con código de invitación
+const membership = await joinGroup({
+  inviteCode: "FAM2024-ABC123",
+  initialContribution: 100,
+});
+```
+
+### 3. Realizar Transacciones
+
+```typescript
+// Aporte al grupo
+const contribution = await contribute({
+  groupId: group.id,
+  amount: 200,
+  walletSignature: signature,
+});
+
+// Retiro del grupo
+const withdrawal = await withdraw({
+  groupId: group.id,
+  amount: 150,
+  reason: "Gastos médicos",
+});
+```
+
+## 🔐 Seguridad
+
+### 🛡️ Medidas Implementadas
+
+- **Autenticación dual**: Supabase Auth + Stellar wallets
+- **Smart contracts**: Validación de reglas on-chain
+- **Multisignatura**: Cuentas grupales seguras
+- **Audit trail**: Registro completo de transacciones
+- **Encriptación**: Datos sensibles protegidos
+
+### 🔒 Best Practices
+
+- **HTTPS obligatorio** en producción
+- **Validación de inputs** en frontend y backend
+- **Rate limiting** para prevenir abuso
+- **Manejo seguro de errores**
+- **Logs estructurados** para auditoría
+
+## 📊 Métricas y Monitoreo
+
+### 🎯 KPIs del Proyecto
+
+- **Total Value Locked (TVL)**: $0 → $100K (Meta 6 meses)
+- **Active Users**: 0 → 1,000 usuarios
+- **Groups Created**: 0 → 100 grupos
+- **Transaction Volume**: $0 → $50K mensual
+- **Yield Generated**: Intereses generados via Blend
+
+### 📈 Monitoreo Técnico
+
+- **Uptime**: 99.9% disponibilidad
+- **Response Time**: <200ms promedio
+- **Error Rate**: <1% de requests
+- **Database Performance**: Queries optimizadas
+- **Blockchain Sync**: Sincronización en tiempo real
+
+## 🚢 Roadmap
+
+### 🎯 MVP (Fase 1 - 3 meses)
+
+- [ ] Autenticación con Supabase y wallets Stellar
+- [ ] Crear y unirse a grupos de ahorro
+- [ ] Aportes y retiros básicos
+- [ ] Integración con Blend Protocol
+- [ ] Dashboard básico de usuario
+
+### 🚀 Fase 2 (3-6 meses)
+
+- [ ] Notificaciones push y email
+- [ ] Reportes y analytics avanzados
 - [ ] Múltiples tipos de grupos
-- [ ] Notificaciones push/SMS
-- [ ] Aplicación móvil nativa
-- [ ] Múltiples stablecoins
+- [ ] Integración con más wallets
+- [ ] Versión mobile (PWA)
 
-### Fase 3
+### 🌟 Fase 3 (6-12 meses)
 
-- [ ] Integración con microcréditos
-- [ ] Métricas y scoring
-- [ ] Herramientas de análisis
-- [ ] Expansión internacional
+- [ ] Governance tokens
+- [ ] Integración con más protocolos DeFi
+- [ ] Marketplace de grupos
+- [ ] AI para recomendaciones
+- [ ] Expansión a otras blockchains
 
-## 🤝 Contribución
+## 🤝 Contribuir
 
-¡Las contribuciones son bienvenidas! Para contribuir:
+### 📝 Guía de Contribución
 
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -m 'Agregar nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Abre un Pull Request
+1. **Fork** el repositorio
+2. **Crear branch**: `git checkout -b feature/nueva-funcionalidad`
+3. **Commit**: `git commit -m 'Agregar nueva funcionalidad'`
+4. **Push**: `git push origin feature/nueva-funcionalidad`
+5. **Pull Request**: Crear PR con descripción detallada
 
-## 📜 Licencia
+### 🐛 Reportar Issues
 
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+- Usar [templates de issues](https://github.com/tu-repo/issues/new/choose)
+- Incluir pasos para reproducir
+- Agregar screenshots si es necesario
+- Etiquetar apropiadamente
 
-## 🔒 Seguridad
+### 🧪 Testing
 
-La seguridad es nuestra prioridad. Para reportar vulnerabilidades:
+```bash
+# Ejecutar todos los tests
+bun run test:all
 
-- **NO** abras issues públicos para problemas de seguridad
-- Envía un email a security@communityWallet.com
-- Incluye todos los detalles relevantes
+# Coverage
+bun run test:coverage
+
+# E2E tests
+bun run test:e2e
+```
+
+## 🔗 Enlaces Útiles
+
+### 📚 Documentación
+
+- [Stellar Developers](https://developers.stellar.org/)
+- [Blend Protocol Docs](https://docs.blend.capital/)
+- [Supabase Documentation](https://supabase.com/docs)
+- [Next.js Documentation](https://nextjs.org/docs)
+
+### 🌐 Comunidad
+
+- [Discord](https://discord.gg/sasasamaes)
+- [Twitter](https://twitter.com/sasasamaes)
+- [Telegram](https://t.me/sasasamaes)
 
 ## 📞 Soporte
 
-- **Discord:** [discord.gg/communityWallet](https://discord.gg/sasasamaes)
-- **Email:** hey@francampos.me
-- **Twitter:** [@communityWallet](https://twitter.com/sasasamaes)
+### 🆘 Obtener Ayuda
 
-## 🌟 Agradecimientos
+- **Documentación**: Revisar [docs/](docs/) primero
+- **Issues**: [Crear issue](https://github.com/tu-repo/issues/new)
 
-- **Stellar Development Foundation** por la infraestructura blockchain
-- **Blend Protocol** por el protocolo DeFi
-- **Supabase** por los servicios de backend
-- **Comunidad open source** por las herramientas utilizadas
+### 👥 Equipo
+
+- **Frontend**: Anouk Rimola
+- **Backend**: Francisco Campos
+- **Blockchain**: Francisco Campos
+- **DevOps**: Anouk Rimola
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](LICENSE) para más detalles.
 
 ---
 
-**Hecho con ❤️ por Francisco Campos y Anouk Rimola**
+<div align="center">
+  <p>
+    <strong>🏦 Community Wallet - Democratizando el ahorro comunitario</strong>
+  </p>
+  <p>
+    Hecho con ❤️ por Francisco Campos y Anouk Rimola
+  </p>
+</div>

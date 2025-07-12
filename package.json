@@ -1,0 +1,80 @@
+{
+  "name": "community-wallet",
+  "version": "1.0.0",
+  "description": "Wallet Grupal para Ahorro Comunitario - Democratizando el ahorro comunitario con blockchain",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.0.0",
+    "bun": ">=1.0.0"
+  },
+  "scripts": {
+    "dev": "bun run --filter='*' dev",
+    "dev:frontend": "bun run --filter='frontend' dev",
+    "dev:backend": "bun run --filter='backend' dev",
+    "build": "bun run --filter='*' build",
+    "build:frontend": "bun run --filter='frontend' build",
+    "build:backend": "bun run --filter='backend' build",
+    "build:contracts": "bun run --filter='contracts' build",
+    "test": "bun run --filter='*' test",
+    "test:all": "bun run --filter='*' test",
+    "test:coverage": "bun run --filter='*' test:coverage",
+    "test:e2e": "bun run --filter='frontend' test:e2e",
+    "lint": "bun run --filter='*' lint",
+    "lint:fix": "bun run --filter='*' lint:fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "type-check": "bun run --filter='*' type-check",
+    "clean": "bun run --filter='*' clean",
+    "db:setup": "bun run --filter='backend' db:setup",
+    "db:migrate": "bun run --filter='backend' db:migrate",
+    "db:seed": "bun run --filter='backend' db:seed",
+    "deploy:contracts": "bun run --filter='contracts' deploy",
+    "start": "bun run --filter='*' start",
+    "postinstall": "bun run build:contracts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "keywords": [
+    "blockchain",
+    "stellar",
+    "soroban",
+    "defi",
+    "savings",
+    "community",
+    "wallet",
+    "group-savings",
+    "web3",
+    "fintech",
+    "latinamerica"
+  ],
+  "author": "Francisco Campos & Anouk Rimola",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tu-usuario/communityWallet.git"
+  },
+  "homepage": "https://github.com/tu-usuario/communityWallet#readme",
+  "bugs": {
+    "url": "https://github.com/tu-usuario/communityWallet/issues"
+  }
+}

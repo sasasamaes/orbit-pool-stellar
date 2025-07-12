@@ -1,0 +1,74 @@
+# Bun configuration file
+[install]
+# Install packages in node_modules
+registry = "https://registry.npmjs.org"
+# Automatically install @types packages
+auto = true
+# Save exact versions
+exact = true
+
+[install.cache]
+# Cache directory
+dir = "~/.bun/install/cache"
+# Disable cache for CI
+disable = false
+
+[run]
+# Bun runtime configuration
+bun = true
+# Enable hot reloading
+hot = false
+
+[test]
+# Test configuration
+# Use bun test by default
+timeout = 20000
+# Test files pattern
+root = "."
+# Test environment
+environment = "node"
+
+[build]
+# Build configuration
+target = "node"
+# Output directory
+outdir = "dist"
+# Minify output
+minify = true
+# Generate sourcemaps
+sourcemap = true
+
+[dev]
+# Development configuration
+# Enable hot reloading
+hot = true
+# Port for dev server
+port = 3000
+
+# Workspace configuration
+[workspace]
+# Enable workspace support
+enable = true
+# Workspace packages
+packages = ["apps/*", "packages/*"]
+
+# Performance optimizations
+[install.lockfile]
+# Use binary lockfile
+binary = true
+# Save lockfile
+save = true
+
+# TypeScript configuration
+[typescript]
+# Enable TypeScript support
+enable = true
+# Use TypeScript compiler
+compiler = "tsc"
+
+# Environment variables
+[env]
+# Node environment
+NODE_ENV = "development"
+# Bun environment
+BUN_ENV = "development" 

@@ -147,10 +147,10 @@ graph TB
 
 ```bash
 # Frontend
-npm run dev          # http://localhost:3000
+bun run dev          # http://localhost:3000
 
 # Backend
-npm run dev          # http://localhost:5000
+bun run dev          # http://localhost:5000
 
 # Database
 supabase start       # Local Supabase
@@ -197,13 +197,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: "22"
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
       - name: Install dependencies
-        run: npm ci
+        run: bun install
       - name: Run tests
-        run: npm test
+        run: bun test
       - name: Run linting
-        run: npm run lint
+        run: bun run lint
 
   deploy-frontend:
     needs: test
