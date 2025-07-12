@@ -14,8 +14,8 @@ fn test_create_group() {
     let group_id = String::from_str(&env, "test_group_1");
     let group_name = String::from_str(&env, "Test Savings Group");
 
-    // Create group
-    client.create_group(&creator, &group_id, &group_name);
+    // Create group with auto-invest enabled
+    client.create_group(&creator, &group_id, &group_name, &true);
 
     // Check group was created
     let group = client.get_group(&group_id);
@@ -26,6 +26,8 @@ fn test_create_group() {
     assert_eq!(group_data.name, group_name);
     assert_eq!(group_data.creator, creator);
     assert_eq!(group_data.total_balance, 0);
+    assert_eq!(group_data.total_yield, 0);
+    assert!(group_data.auto_invest_enabled);
     assert!(group_data.is_active);
 
     // Check creator is admin
@@ -52,8 +54,8 @@ fn test_join_group() {
     let group_id = String::from_str(&env, "test_group_2");
     let group_name = String::from_str(&env, "Test Join Group");
 
-    // Create group first
-    client.create_group(&creator, &group_id, &group_name);
+    // Create group first with auto-invest disabled
+    client.create_group(&creator, &group_id, &group_name, &false);
 
     // Join group
     client.join_group(&member, &group_id);
@@ -91,7 +93,7 @@ fn test_basic_functionality() {
     for group_id_str in group_ids.iter() {
         let group_id = String::from_str(&env, group_id_str);
         let group_name = String::from_str(&env, "Group");
-        client.create_group(&user, &group_id, &group_name);
+        client.create_group(&user, &group_id, &group_name, &true);
     }
 
     // Check user has 3 groups
@@ -100,4 +102,34 @@ fn test_basic_functionality() {
 
     // Check total group count
     assert_eq!(client.get_group_count(), 3);
+}
+
+#[test]
+fn test_blend_integration() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let contract_id = env.register(CommunityWalletContract, ());
+    let client = CommunityWalletContractClient::new(&env, &contract_id);
+
+    let creator = Address::generate(&env);
+    let blend_pool = Address::generate(&env);
+    let group_id = String::from_str(&env, "test_blend_group");
+    let group_name = String::from_str(&env, "Blend Test Group");
+
+    // Create group with auto-invest enabled
+    client.create_group(&creator, &group_id, &group_name, &true);
+
+    // Set Blend pool address
+    client.set_blend_pool(&creator, &blend_pool);
+
+    // Check Blend pool was set
+    let retrieved_pool = client.get_blend_pool();
+    assert!(retrieved_pool.is_some());
+    assert_eq!(retrieved_pool.unwrap(), blend_pool);
+
+    // Check auto-invest is enabled
+    assert!(client.is_auto_invest_enabled(&group_id));
+
+    // Check initial yield is zero
+    assert_eq!(client.get_group_yield(&group_id), 0);
 }

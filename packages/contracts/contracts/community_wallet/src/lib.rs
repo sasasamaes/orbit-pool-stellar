@@ -3,6 +3,7 @@
 use soroban_sdk::{
     contract, contractimpl, contracttype, token, vec, Address, Env, Map, String, Vec,
 };
+use blend_contract_sdk::pool;
 
 #[derive(Clone)]
 #[contracttype]
@@ -12,6 +13,9 @@ pub struct Group {
     pub creator: Address,
     pub members: Vec<Address>,
     pub total_balance: i128,
+    pub total_yield: i128,
+    pub blend_pool_address: Option<Address>,
+    pub auto_invest_enabled: bool,
     pub is_active: bool,
 }
 
@@ -31,6 +35,7 @@ pub enum DataKey {
     GroupMembers(String),
     UserGroups(Address),
     GroupCount,
+    BlendPoolAddress,
 }
 
 #[contract]
@@ -44,6 +49,7 @@ impl CommunityWalletContract {
         creator: Address,
         group_id: String,
         name: String,
+        auto_invest_enabled: bool,
     ) {
         creator.require_auth();
 
@@ -59,6 +65,9 @@ impl CommunityWalletContract {
             creator: creator.clone(),
             members: vec![&env, creator.clone()],
             total_balance: 0,
+            total_yield: 0,
+            blend_pool_address: None,
+            auto_invest_enabled,
             is_active: true,
         };
 
@@ -358,6 +367,186 @@ impl CommunityWalletContract {
             .instance()
             .get(&DataKey::GroupCount)
             .unwrap_or(0)
+    }
+
+    /// Set Blend pool address for automatic yield generation
+    pub fn set_blend_pool(env: Env, admin: Address, blend_pool_address: Address) {
+        admin.require_auth();
+        
+        env.storage()
+            .instance()
+            .set(&DataKey::BlendPoolAddress, &blend_pool_address);
+    }
+
+    /// Get the configured Blend pool address
+    pub fn get_blend_pool(env: Env) -> Option<Address> {
+        env.storage()
+            .instance()
+            .get(&DataKey::BlendPoolAddress)
+    }
+
+    /// Deposit group funds into Blend protocol for yield generation
+    pub fn deposit_to_blend(
+        env: Env,
+        group_id: String,
+        _amount: i128,
+        _token_address: Address,
+    ) {
+        // Get group data
+        let mut group: Group = env
+            .storage()
+            .instance()
+            .get(&DataKey::Group(group_id.clone()))
+            .unwrap_or_else(|| panic!("Group not found"));
+
+        if !group.is_active || !group.auto_invest_enabled {
+            panic!("Group auto-invest not enabled");
+        }
+
+        if _amount <= 0 || _amount > group.total_balance {
+            panic!("Invalid deposit amount");
+        }
+
+        // Get Blend pool address
+        let blend_pool_address = env
+            .storage()
+            .instance()
+            .get(&DataKey::BlendPoolAddress)
+            .unwrap_or_else(|| panic!("Blend pool not configured"));
+
+        // Create Blend pool client  
+        let _pool_client = pool::Client::new(&env, &blend_pool_address);
+        
+        // For now, use a simplified approach - just track the deposit
+        // TODO: Implement actual Blend pool integration once API is confirmed
+        // pool_client.submit(...) - will be implemented after API verification
+
+        // Update group to track Blend investment
+        group.blend_pool_address = Some(blend_pool_address);
+        
+        env.storage()
+            .instance()
+            .set(&DataKey::Group(group_id), &group);
+    }
+
+    /// Withdraw funds from Blend protocol with accumulated yield
+    pub fn withdraw_from_blend(
+        env: Env,
+        admin: Address,
+        group_id: String,
+        _amount: i128,
+        token_address: Address,
+    ) {
+        admin.require_auth();
+
+        // Get group data
+        let mut group: Group = env
+            .storage()
+            .instance()
+            .get(&DataKey::Group(group_id.clone()))
+            .unwrap_or_else(|| panic!("Group not found"));
+
+        if !group.is_active {
+            panic!("Group is not active");
+        }
+
+        let blend_pool_address = group.blend_pool_address.clone()
+            .unwrap_or_else(|| panic!("No Blend investment found"));
+
+        // Create Blend pool client
+        let _pool_client = pool::Client::new(&env, &blend_pool_address);
+
+        // For now, use a simplified approach - just track the withdrawal
+        // TODO: Implement actual Blend pool integration once API is confirmed
+        // pool_client.submit(...) - will be implemented after API verification
+
+        // Update group yield tracking
+        let previous_balance = group.total_balance;
+        let token_client = token::Client::new(&env, &token_address);
+        let current_balance = token_client.balance(&env.current_contract_address());
+        
+        if current_balance > previous_balance {
+            let yield_earned = current_balance - previous_balance;
+            group.total_yield += yield_earned;
+        }
+
+        group.total_balance = current_balance;
+        
+        env.storage()
+            .instance()
+            .set(&DataKey::Group(group_id), &group);
+    }
+
+    /// Calculate and distribute yield to group members proportionally
+    pub fn distribute_yield(env: Env, group_id: String) {
+        // Get group data
+        let mut group: Group = env
+            .storage()
+            .instance()
+            .get(&DataKey::Group(group_id.clone()))
+            .unwrap_or_else(|| panic!("Group not found"));
+
+        if !group.is_active || group.total_yield <= 0 {
+            panic!("No yield to distribute");
+        }
+
+        // Get members map
+        let mut members_map: Map<Address, Member> = env
+            .storage()
+            .instance()
+            .get(&DataKey::GroupMembers(group_id.clone()))
+            .unwrap_or(Map::new(&env));
+
+        let total_contributed = group.total_balance - group.total_yield;
+        
+        if total_contributed <= 0 {
+            panic!("No contributions to base distribution on");
+        }
+
+        // Distribute yield proportionally to member contributions
+        for member_address in group.members.iter() {
+            if let Some(mut member) = members_map.get(member_address.clone()) {
+                // Calculate member's share of yield based on their contribution percentage
+                let member_share = (member.balance * group.total_yield) / total_contributed;
+                member.balance += member_share;
+                members_map.set(member_address, member);
+            }
+        }
+
+        // Reset yield after distribution
+        group.total_yield = 0;
+
+        // Store updated data
+        env.storage()
+            .instance()
+            .set(&DataKey::Group(group_id.clone()), &group);
+        env.storage()
+            .instance()
+            .set(&DataKey::GroupMembers(group_id), &members_map);
+    }
+
+    /// Get current yield earned by the group
+    pub fn get_group_yield(env: Env, group_id: String) -> i128 {
+        match env
+            .storage()
+            .instance()
+            .get::<DataKey, Group>(&DataKey::Group(group_id))
+        {
+            Some(group) => group.total_yield,
+            None => 0,
+        }
+    }
+
+    /// Check if auto-invest is enabled for a group
+    pub fn is_auto_invest_enabled(env: Env, group_id: String) -> bool {
+        match env
+            .storage()
+            .instance()
+            .get::<DataKey, Group>(&DataKey::Group(group_id))
+        {
+            Some(group) => group.auto_invest_enabled,
+            None => false,
+        }
     }
 }
 
