@@ -1,7 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, token, vec, Address, Env, Map, String, Symbol, Vec,
+    contract, contractimpl, contracttype, token, vec, Address, Env, Map, String, Vec,
 };
 
 #[derive(Clone)]
@@ -33,18 +33,6 @@ pub enum DataKey {
     GroupCount,
 }
 
-#[derive(Clone)]
-#[contracttype]
-pub enum Error {
-    GroupNotFound,
-    NotAuthorized,
-    AlreadyMember,
-    NotMember,
-    InsufficientBalance,
-    GroupInactive,
-    InvalidAmount,
-}
-
 #[contract]
 pub struct CommunityWalletContract;
 
@@ -56,12 +44,12 @@ impl CommunityWalletContract {
         creator: Address,
         group_id: String,
         name: String,
-    ) -> Result<(), Error> {
+    ) {
         creator.require_auth();
 
         // Check if group already exists
         if env.storage().instance().has(&DataKey::Group(group_id.clone())) {
-            return Err(Error::GroupNotFound);
+            panic!("Group already exists");
         }
 
         // Create new group
@@ -113,8 +101,6 @@ impl CommunityWalletContract {
         env.storage()
             .instance()
             .set(&DataKey::GroupCount, &(count + 1));
-
-        Ok(())
     }
 
     /// Join an existing group
@@ -122,7 +108,7 @@ impl CommunityWalletContract {
         env: Env,
         member: Address,
         group_id: String,
-    ) -> Result<(), Error> {
+    ) {
         member.require_auth();
 
         // Get group data
@@ -130,10 +116,10 @@ impl CommunityWalletContract {
             .storage()
             .instance()
             .get(&DataKey::Group(group_id.clone()))
-            .ok_or(Error::GroupNotFound)?;
+            .unwrap_or_else(|| panic!("Group not found"));
 
         if !group.is_active {
-            return Err(Error::GroupInactive);
+            panic!("Group is not active");
         }
 
         // Get members map
@@ -145,7 +131,7 @@ impl CommunityWalletContract {
 
         // Check if already a member
         if members_map.contains_key(member.clone()) {
-            return Err(Error::AlreadyMember);
+            panic!("Already a member");
         }
 
         // Add new member
@@ -178,8 +164,6 @@ impl CommunityWalletContract {
         env.storage()
             .instance()
             .set(&DataKey::UserGroups(member), &user_groups);
-
-        Ok(())
     }
 
     /// Contribute USDC to a group
@@ -189,11 +173,11 @@ impl CommunityWalletContract {
         group_id: String,
         amount: i128,
         token_address: Address,
-    ) -> Result<(), Error> {
+    ) {
         contributor.require_auth();
 
         if amount <= 0 {
-            return Err(Error::InvalidAmount);
+            panic!("Invalid amount");
         }
 
         // Get group data
@@ -201,10 +185,10 @@ impl CommunityWalletContract {
             .storage()
             .instance()
             .get(&DataKey::Group(group_id.clone()))
-            .ok_or(Error::GroupNotFound)?;
+            .unwrap_or_else(|| panic!("Group not found"));
 
         if !group.is_active {
-            return Err(Error::GroupInactive);
+            panic!("Group is not active");
         }
 
         // Get members map
@@ -217,7 +201,7 @@ impl CommunityWalletContract {
         // Check if user is a member
         let mut member = members_map
             .get(contributor.clone())
-            .ok_or(Error::NotMember)?;
+            .unwrap_or_else(|| panic!("Not a member"));
 
         // Transfer tokens from contributor to contract
         let token_client = token::Client::new(&env, &token_address);
@@ -237,22 +221,20 @@ impl CommunityWalletContract {
         env.storage()
             .instance()
             .set(&DataKey::GroupMembers(group_id), &members_map);
-
-        Ok(())
     }
 
-    /// Withdraw funds from a group (requires admin approval in most cases)
+    /// Withdraw funds from a group
     pub fn withdraw(
         env: Env,
         member: Address,
         group_id: String,
         amount: i128,
         token_address: Address,
-    ) -> Result<(), Error> {
+    ) {
         member.require_auth();
 
         if amount <= 0 {
-            return Err(Error::InvalidAmount);
+            panic!("Invalid amount");
         }
 
         // Get group data
@@ -260,10 +242,10 @@ impl CommunityWalletContract {
             .storage()
             .instance()
             .get(&DataKey::Group(group_id.clone()))
-            .ok_or(Error::GroupNotFound)?;
+            .unwrap_or_else(|| panic!("Group not found"));
 
         if !group.is_active {
-            return Err(Error::GroupInactive);
+            panic!("Group is not active");
         }
 
         // Get members map
@@ -276,11 +258,11 @@ impl CommunityWalletContract {
         // Check if user is a member
         let mut member_data = members_map
             .get(member.clone())
-            .ok_or(Error::NotMember)?;
+            .unwrap_or_else(|| panic!("Not a member"));
 
         // Check if user has sufficient balance
         if member_data.balance < amount {
-            return Err(Error::InsufficientBalance);
+            panic!("Insufficient balance");
         }
 
         // Update member balance
@@ -301,8 +283,6 @@ impl CommunityWalletContract {
         env.storage()
             .instance()
             .set(&DataKey::GroupMembers(group_id), &members_map);
-
-        Ok(())
     }
 
     /// Get group information
