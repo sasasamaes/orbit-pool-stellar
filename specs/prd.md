@@ -1,147 +1,99 @@
-# PRD – Wallet Grupal para Ahorro Comunitario con Intereses
+# PRD – Hackathon MVP: Wallet Grupal Comunitaria en Stellar
 
 ---
 
-## 1. **Visión**
+### 1. \*\*Nombre del Proyecto y Resumen Ejecutivo
 
-Facilitar el ahorro colectivo y la inversión para comunidades, familias o grupos sociales en Latinoamérica usando tecnología blockchain. Digitalizamos las tradicionales “cajas de ahorro” permitiendo a cualquier grupo conformar fondos comunes, invertirlos de forma segura para obtener intereses mediante Blend (protocolo DeFi en Stellar), y aprovechando la autenticación social/segura y la transparencia de la web3.
+**Nombre:**  
+Wallet Grupal Comunitaria DeFi
 
----
-
-## 2. **Objetivos**
-
-- Permitir a cualquier usuario crear o unirse a una “caja de ahorro” digital grupal.
-- Realizar aportes y retiros de manera sencilla y transparente.
-- Invertir automáticamente los fondos comunitarios en Blend para obtener intereses colectivos.
-- Brindar onboarding sencillo mediante autenticación social/magic link/email.
-- Garantizar seguridad y claridad en el manejo de los fondos gracias a la integración de wallets Stellar.
-- Ofrecer visibilidad del ahorro, rendimiento, transacciones e historial a todos los participantes.
+**Resumen Ejecutivo:**  
+Desarrollaremos una aplicación web que empodera a grupos (amigos, familias, cooperativas, comunidades rurales) en Latinoamérica para crear “cajas de ahorro” digitales seguras en blockchain. Permitirá a cualquier grupo ahorrar de forma colectiva, invertir automáticamente fondos en protocolos DeFi como Blend (sobre Stellar) y así obtener intereses transparentes, todo con una experiencia simple y social.
 
 ---
 
-## 3. **Personas Usuarias**
+### 2. **Problema y Solución Propuesta**
 
-- **Individuos o grupos** sin fácil acceso a servicios financieros (familias, amigos, cooperativas).
-- **Migrantes o jóvenes** con conocimiento digital básico/intermedio.
-- **Community managers** que promueven el ahorro colaborativo en zonas vulnerables.
+**Problema:**  
+En América Latina, las comunidades carecen de herramientas seguras, transparentes y accesibles para ahorrar e invertir colectivamente.
 
----
-
-## 4. **User Stories Principales**
-
-### Como usuario:
-
-- **Quiero** iniciar sesión de forma sencilla (email OTP/magic link o login social con Google, Apple, Facebook) para no depender de contraseñas tradicionales.
-- **Quiero** conectar mi wallet Stellar web3 (como Freighter o LOBSTR), para aportar, invertir y retirar de forma segura.
-- **Quiero** crear un grupo, definir las reglas (cuánto, cuándo, quiénes), e invitar a otras personas fácilmente.
-- **Quiero** aportar fondos al grupo usando mi wallet, sin temor a fraudes o errores.
-- **Quiero** saber en tiempo real cuánto hemos ahorrado e invertido, y cuántos intereses llevamos generados.
-- **Quiero** retirar mi parte de los fondos (cuando la ronda/grupo lo permita) y que el proceso sea rápido y auditable.
-- **Quiero** ver el historial de movimientos y reglas del grupo en todo momento.
+**Solución:**  
+Una app web que permite a las personas crear grupos, aportar fondos desde sus wallets Stellar y, de forma automática, invertir estos fondos en Blend para generar intereses. Los usuarios pueden ver su saldo, intereses y toda la actividad del grupo de forma transparente y controlada.
 
 ---
 
-## 5. **Funcionalidades Principales**
+### 3. **Audiencia Objetivo**
 
-**Onboarding y Auth**
-
-- Registro/login con Supabase (Email OTP, Magic Link, Google, Apple, Facebook).
-- Vinculación de wallet Stellar (Freighter extensión, LOBSTR Signer, QR o SEP-7).
-
-**Gestión de grupos**
-
-- Crear grupo: nombre, reglas (número de miembros, monto, periodicidad, orden de retiros).
-- Invitar usuarios (link, QR, email).
-- Ver y modificar miembros del grupo.
-
-**Aportes y retiros**
-
-- Aportar fondos desde wallet Stellar (interfaz para firmar transacciones).
-- Notificación para aportar y control de aportes pendientes.
-- Retiro de capital e intereses siguiendo reglas del grupo, con firma on-chain.
-
-**Inversión en Blend**
-
-- Los fondos grupales se invierten automáticamente en Blend al alcanzar el umbral o al final del ciclo.
-- Visualización de intereses generados.
-- Retiro de fondos incluyendo rendimiento a los miembros.
-
-**Transparencia y rendición de cuentas**
-
-- Visibilidad del historial de aportes, retiros e intereses por usuario/grupo.
-- Seguimiento de transacciones y estados on-chain.
-
-**Dashboard**
-
-- Dashboard con saldos, próximos ciclos, aportes realizados/pedientes, intereses generados, historial, reglas visibles.
+- Grupos de amigos
+- Familias
+- Cooperativas
+- Comunidades rurales
 
 ---
 
-## 6. **Alcance (Scope) del MVP**
+### 4. **Funcionalidades Clave del MVP**
 
-- Lanzar solo versión web desktop/mobile.
-- Integrar login/email, social y web3 wallet.
-- Operar con USDC en Stellar.
-- Un solo modelo de grupo (“tanda simple”).
-- Integrar únicamente Blend como opción de inversión.
-- Notificaciones básicas por email (vía Supabase).
-
----
-
-## 7. **Requisitos Técnicos**
-
-**Frontend**:
-
-- Next.js + Tailwind/Chakra UI/AntD
-- SDK Supabase
-- Freighter API y/o SEP-7 integraciones
-
-**Backend**:
-
-- Express.js
-- API REST/GraphQL
-- Validación JWT de Supabase
-- Comunicación web3 con Soroban/Stellar
-
-**Contracts**:
-
-- Soroban (Rust) — lógica grupal y Blend integration
-
-**Infra**:
-
-- Supabase (Auth y PostgreSQL)
-- Stellar Testnet/Mainnet
-- Blend Protocol
-
-**Repositorio:**
-
-- Monorepo con TurboRepo/NX
+- **Onboarding:** Login social (email, Google) vía Supabase.
+- **Creación de grupo:** Crear nueva “caja de ahorro”, definir nombre.
+- **Invitación:** Invitar miembros por email o link.
+- **Conexión de wallet Stellar:** Integración con Freighter/Lobstr.
+- **Aportar fondos:** Enviar USDC/XLM desde wallet Stellar al grupo.
+- **Inversión automática:** Depósito colectivo en Blend para generar intereses.
+- **Dashboard:** Visualización del saldo total, intereses acumulados y aportes individuales.
+- **Auditoría básica:** Ver historial de movimientos del grupo.
 
 ---
 
-## 8. **KPI/Éxito -- Criterios de Aceptación**
+### 5. **Stack Tecnológico**
 
-- En menos de 5 minutos, un usuario puede: registrarse, conectar wallet, crear grupo, invitar a otro usuario, y aportar fondos.
-- Fondos grupales se reflejan en tiempo real y muestran intereses generados de forma comprensible.
-- Todas las transacciones críticas requieren firma on-chain del usuario.
-- Cada usuario puede consultar su historial y saldo en cualquier momento.
-- El retiro de fondos debe ser claro, seguro y con feedback inmediato.
-
----
-
-## 9. **Roadmap Futuro (No MVP)**
-
-- Multimoneda y opciones de stablecoins.
-- Notificaciones push/SMS.
-- Múltiples tipos de grupos, reglas avanzadas.
-- Mobile app nativa.
-- Métricas personalizadas, reputación y scoring.
-- Integración con microcréditos.
+- **Frontend:** Next.js (React)
+- **Backend:** Express.js (Node)
+- **Base de datos y autenticación:** Supabase (PostgreSQL + Auth)
+- **Blockchain:** Stellar (StellarJS, SEP-7)
+- **Wallet:** Freighter y/o Lobstr
+- **DeFi:** Blend protocol (sobre Stellar)
+- **Smart Contracts:** Soroban (Rust)
 
 ---
 
-## 10. **Riesgos y Consideraciones**
+### 6. **Criterios de Éxito en el Hackathon**
 
-- Fricción en onboarding por desconocimiento cripto/web3 (mitigable con tutorial y soporte).
-- Seguridad de los fondos — priorizar contratos auditables y transparente.
-- Regulación local de stablecoins/web3.
+- El usuario puede registrarse, conectar su wallet, crear un grupo, invitar a un miembro, realizar un aporte real (en testnet), y visualizar en menos de 10 minutos el balance grupal y los intereses generados.
+- La experiencia es transparente, simple y segura para perfiles no técnicos.
+- El demo muestra claramente mejoras sobre métodos tradicionales (transparencia, seguridad, intereses visibles).
+
+---
+
+### 7. **Roadmap de 48-72 Horas**
+
+| Tiempo | Actividad                                                                   |
+| ------ | --------------------------------------------------------------------------- |
+| 0-6h   | Definir flujos, diseñar wireframes, setup monorepo y entorno de trabajo     |
+| 6-18h  | Implementar login social y conexión de wallet, crear modelo de datos Grupo  |
+| 18-30h | Crear y listar grupos, flujo de invitación/aceptación                       |
+| 30-40h | Integrar aporte desde wallet (testnet), validar recepción y DB              |
+| 40-50h | Desarrollar integración Blend (fondos del grupo invertidos automáticamente) |
+| 50-60h | Generar dashboard: saldo, intereses, historial                              |
+| 60-68h | Testeo end-to-end, pulido de UI y error handling                            |
+| 68-72h | Preparar pitch demo y video                                                 |
+
+---
+
+### 8. **Responsabilidades del Equipo**
+
+- **Lead Dev / Full Stack:** Infraestructura, backend API, integración blockchain/smart contract.
+- **Frontend Dev:** UI/UX, conexión wallet, integración con backend y auth.
+- **Blockchain Dev:** Contrato Soroban mínimo e integración Blend.
+- **Product Manager / QA:** Gestión de tiempos, documentación, presentación/pitch, pruebas y feedback continuo.
+
+---
+
+### 9. **Riesgos Principales y Contingencias**
+
+| Riesgo                                  | Contingencia                                    |
+| --------------------------------------- | ----------------------------------------------- |
+| Dificultad integración Blend/Soroban    | Mockear respuesta de intereses si surge bloqueo |
+| Problemas con conexión de wallet        | Limitar soporte a Freighter o solo SEP-7        |
+| Falta de tiempo en integración completa | Priorizar flujo: login → crear/grupo → aporte   |
+| Problemas con Auth social en Supabase   | Habilitar fallback con email/OTP                |
+| UX no intuitiva                         | Usar plantilla sencilla, pedir feedback rápido  |
