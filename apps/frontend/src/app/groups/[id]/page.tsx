@@ -18,6 +18,9 @@ import { YieldMetrics } from '@/components/yield/yield-metrics';
 import { AutoInvestControl } from '@/components/yield/auto-invest-control';
 import { YieldHistory } from '@/components/yield/yield-history';
 import { YieldActions } from '@/components/yield/yield-actions';
+import { CreateInvitation } from '@/components/invitations/create-invitation';
+import { InvitationList } from '@/components/invitations/invitation-list';
+import { useInvitations } from '@/hooks/use-invitations';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -94,7 +97,7 @@ export default function GroupDetailPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userMembership, setUserMembership] = useState<GroupMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'transactions' | 'yield'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'transactions' | 'yield' | 'invitations'>('overview');
   
   // Contribution form
   const [contributionAmount, setContributionAmount] = useState('');
@@ -116,6 +119,21 @@ export default function GroupDetailPage() {
     distributeYield,
     refreshData: refreshYieldData,
   } = useYield(groupId);
+
+  // Invitations management hook
+  const {
+    invitations,
+    analytics,
+    isLoading: isInvitationsLoading,
+    isProcessing: isInvitationsProcessing,
+    createInvitation,
+    sendEmailInvitation,
+    createQuickInvitation,
+    revokeInvitation,
+    copyInviteLink,
+    shareInvitation,
+    refreshData: refreshInvitationsData,
+  } = useInvitations(groupId);
 
   useEffect(() => {
     if (groupId) {
@@ -465,6 +483,18 @@ export default function GroupDetailPage() {
                   >
                     Yield & Investment
                   </button>
+                  {userMembership?.role === 'admin' && (
+                    <button
+                      onClick={() => setActiveTab('invitations')}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        activeTab === 'invitations'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      Invitations
+                    </button>
+                  )}
                 </nav>
               </div>
 
@@ -689,6 +719,40 @@ export default function GroupDetailPage() {
                       }}
                     />
                   </div>
+                </div>
+              )}
+
+              {activeTab === 'invitations' && userMembership?.role === 'admin' && (
+                <div className="space-y-6">
+                  {/* Create Invitation */}
+                  <CreateInvitation
+                    groupId={groupId}
+                    groupName={group?.name || 'Group'}
+                    onInvitationCreated={(invitation) => {
+                      console.log('Invitation created:', invitation);
+                      refreshInvitationsData();
+                    }}
+                    onEmailSent={(result) => {
+                      console.log('Email sent:', result);
+                      refreshInvitationsData();
+                    }}
+                  />
+
+                  {/* Invitations List */}
+                  <InvitationList
+                    invitations={invitations}
+                    analytics={analytics}
+                    isLoading={isInvitationsLoading}
+                    onCopyLink={copyInviteLink}
+                    onShareInvitation={(invitation) => {
+                      shareInvitation(
+                        group?.name || 'Group',
+                        invitation.links.secure_link,
+                        invitation.message
+                      );
+                    }}
+                    onRevokeInvitation={revokeInvitation}
+                  />
                 </div>
               )}
             </div>

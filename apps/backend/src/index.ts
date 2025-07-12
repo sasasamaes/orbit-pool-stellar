@@ -15,6 +15,7 @@ dotenv.config();
 import groupRoutes from './routes/groups';
 import contributionRoutes from './routes/contributions';
 import userRoutes from './routes/users';
+import invitationRoutes from './routes/invitations';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -65,6 +66,7 @@ app.get('/health', (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/contributions', contributionRoutes);
+app.use('/api/invitations', invitationRoutes);
 
 // API documentation
 app.get('/api', (req, res) => {
@@ -76,6 +78,7 @@ app.get('/api', (req, res) => {
       users: '/api/users',
       groups: '/api/groups',
       contributions: '/api/contributions',
+      invitations: '/api/invitations',
       health: '/health',
     },
   });

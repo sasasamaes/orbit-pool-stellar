@@ -278,3 +278,126 @@ BEGIN
     RETURN total_balance;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- =====================================================
+-- INVITATIONS TABLE
+-- =====================================================
+
+CREATE TABLE public.invitations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
+    inviter_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    
+    -- Invitation tokens
+    invite_token TEXT NOT NULL UNIQUE, -- Secure token for URLs
+    invite_code TEXT NOT NULL, -- Short code for manual entry
+    
+    -- Optional email for direct invitations
+    email TEXT,
+    
+    -- Status tracking
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'expired', 'revoked')),
+    
+    -- Expiry and usage tracking
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at TIMESTAMPTZ,
+    used_by UUID REFERENCES public.users(id),
+    
+    -- Optional invitation message
+    message TEXT,
+    
+    -- Metadata
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create indexes for invitations
+CREATE INDEX idx_invitations_token ON public.invitations(invite_token);
+CREATE INDEX idx_invitations_code ON public.invitations(invite_code);
+CREATE INDEX idx_invitations_group_id ON public.invitations(group_id);
+CREATE INDEX idx_invitations_email ON public.invitations(email);
+CREATE INDEX idx_invitations_status ON public.invitations(status);
+CREATE INDEX idx_invitations_expires_at ON public.invitations(expires_at);
+
+-- RLS for invitations
+ALTER TABLE public.invitations ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can view invitations they created or that are for groups they admin
+CREATE POLICY "Users can view relevant invitations" ON public.invitations
+    FOR SELECT USING (
+        inviter_id = auth.uid() OR
+        EXISTS (
+            SELECT 1 FROM public.group_memberships gm 
+            WHERE gm.group_id = invitations.group_id 
+            AND gm.user_id = auth.uid() 
+            AND gm.role = 'admin' 
+            AND gm.status = 'active'
+        )
+    );
+
+-- Policy: Only group admins can create invitations
+CREATE POLICY "Group admins can create invitations" ON public.invitations
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.group_memberships gm 
+            WHERE gm.group_id = invitations.group_id 
+            AND gm.user_id = auth.uid() 
+            AND gm.role = 'admin' 
+            AND gm.status = 'active'
+        )
+    );
+
+-- Policy: Only invitation creator or group admins can update invitations
+CREATE POLICY "Can update own or group invitations" ON public.invitations
+    FOR UPDATE USING (
+        inviter_id = auth.uid() OR
+        EXISTS (
+            SELECT 1 FROM public.group_memberships gm 
+            WHERE gm.group_id = invitations.group_id 
+            AND gm.user_id = auth.uid() 
+            AND gm.role = 'admin' 
+            AND gm.status = 'active'
+        )
+    );
+
+-- Policy: Only group admins can delete invitations
+CREATE POLICY "Group admins can delete invitations" ON public.invitations
+    FOR DELETE USING (
+        EXISTS (
+            SELECT 1 FROM public.group_memberships gm 
+            WHERE gm.group_id = invitations.group_id 
+            AND gm.user_id = auth.uid() 
+            AND gm.role = 'admin' 
+            AND gm.status = 'active'
+        )
+    );
+
+-- Trigger to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_invitations_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_invitations_updated_at
+    BEFORE UPDATE ON public.invitations
+    FOR EACH ROW
+    EXECUTE FUNCTION update_invitations_updated_at();
+
+-- Function to clean up expired invitations (run periodically)
+CREATE OR REPLACE FUNCTION cleanup_expired_invitations()
+RETURNS INTEGER AS $$
+DECLARE
+    expired_count INTEGER;
+BEGIN
+    UPDATE public.invitations 
+    SET status = 'expired'
+    WHERE status = 'pending' 
+    AND expires_at < NOW();
+    
+    GET DIAGNOSTICS expired_count = ROW_COUNT;
+    RETURN expired_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
