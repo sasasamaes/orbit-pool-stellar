@@ -1,6 +1,6 @@
-import WebSocket from 'ws';
-import { IncomingMessage } from 'http';
-import { URL } from 'url';
+import WebSocket, { WebSocketServer } from "ws";
+import { IncomingMessage } from "http";
+import { URL } from "url";
 
 export interface RealtimeEvent {
   type: string;
@@ -40,17 +40,17 @@ export class WebSocketService {
    * Initialize WebSocket server
    */
   initializeServer(server: any): void {
-    const wss = new WebSocket.Server({ 
+    const wss = new WebSocketServer({
       server,
-      path: '/ws',
+      path: "/ws",
       verifyClient: this.verifyClient.bind(this),
     });
 
-    wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
+    wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
       this.handleConnection(ws, req);
     });
 
-    console.log('📡 WebSocket server initialized');
+    console.log("📡 WebSocket server initialized");
   }
 
   /**
@@ -58,11 +58,11 @@ export class WebSocketService {
    */
   private handleConnection(ws: WebSocket, req: IncomingMessage): void {
     const url = new URL(req.url!, `http://${req.headers.host}`);
-    const userId = url.searchParams.get('userId');
+    const userId = url.searchParams.get("userId");
 
     if (!userId) {
-      console.log('❌ WebSocket connection rejected: missing userId');
-      ws.close(1008, 'Missing userId parameter');
+      console.log("❌ WebSocket connection rejected: missing userId");
+      ws.close(1008, "Missing userId parameter");
       return;
     }
 
@@ -79,20 +79,20 @@ export class WebSocketService {
     this.clients.set(userId, clientConnection);
 
     // Set up event handlers
-    ws.on('message', (data: WebSocket.Data) => {
+    ws.on("message", (data: WebSocket.Data) => {
       this.handleMessage(userId, data);
     });
 
-    ws.on('close', (code: number, reason: string) => {
+    ws.on("close", (code: number, reason: string) => {
       this.handleDisconnection(userId, code, reason);
     });
 
-    ws.on('error', (error: Error) => {
+    ws.on("error", (error: Error) => {
       console.error(`WebSocket error for user ${userId}:`, error);
-      this.handleDisconnection(userId, 1011, 'Internal error');
+      this.handleDisconnection(userId, 1011, "Internal error");
     });
 
-    ws.on('pong', () => {
+    ws.on("pong", () => {
       const client = this.clients.get(userId);
       if (client) {
         client.lastPing = Date.now();
@@ -101,9 +101,9 @@ export class WebSocketService {
 
     // Send welcome message
     this.sendToClient(userId, {
-      type: 'connection_established',
-      data: { 
-        message: 'Connected to Community Wallet real-time service',
+      type: "connection_established",
+      data: {
+        message: "Connected to Community Wallet real-time service",
         userId,
         timestamp: new Date().toISOString(),
       },
@@ -117,25 +117,25 @@ export class WebSocketService {
   private handleMessage(userId: string, data: WebSocket.Data): void {
     try {
       const message = JSON.parse(data.toString());
-      
+
       switch (message.type) {
-        case 'ping':
+        case "ping":
           this.sendToClient(userId, {
-            type: 'pong',
+            type: "pong",
             data: { timestamp: new Date().toISOString() },
             timestamp: new Date().toISOString(),
           });
           break;
 
-        case 'join_group':
+        case "join_group":
           this.joinGroup(userId, message.groupId);
           break;
 
-        case 'leave_group':
+        case "leave_group":
           this.leaveGroup(userId, message.groupId);
           break;
 
-        case 'heartbeat':
+        case "heartbeat":
           // Update last ping time
           const client = this.clients.get(userId);
           if (client) {
@@ -154,16 +154,20 @@ export class WebSocketService {
   /**
    * Handle client disconnection
    */
-  private handleDisconnection(userId: string, code: number, reason: string): void {
+  private handleDisconnection(
+    userId: string,
+    code: number,
+    reason: string
+  ): void {
     console.log(`🔌 WebSocket disconnected: ${userId} (${code}: ${reason})`);
-    
+
     const client = this.clients.get(userId);
     if (client) {
       // Remove from all groups
-      client.groups.forEach(groupId => {
+      client.groups.forEach((groupId) => {
         this.leaveGroup(userId, groupId);
       });
-      
+
       // Remove client
       this.clients.delete(userId);
     }
@@ -191,7 +195,7 @@ export class WebSocketService {
   sendToGroup(groupId: string, event: RealtimeEvent): void {
     const groupMembers = this.groups.get(groupId);
     if (groupMembers) {
-      groupMembers.forEach(userId => {
+      groupMembers.forEach((userId) => {
         this.sendToClient(userId, event);
       });
     }
@@ -221,7 +225,7 @@ export class WebSocketService {
       this.groups.set(groupId, new Set());
     }
     this.groups.get(groupId)!.add(userId);
-    
+
     // Add group to user's groups
     client.groups.add(groupId);
 
@@ -229,14 +233,14 @@ export class WebSocketService {
 
     // Send confirmation
     this.sendToClient(userId, {
-      type: 'group_joined',
+      type: "group_joined",
       data: { groupId },
       timestamp: new Date().toISOString(),
     });
 
     // Notify other group members
     this.sendToGroup(groupId, {
-      type: 'member_connected',
+      type: "member_connected",
       data: { userId, groupId },
       timestamp: new Date().toISOString(),
       groupId,
@@ -255,7 +259,7 @@ export class WebSocketService {
     const group = this.groups.get(groupId);
     if (group) {
       group.delete(userId);
-      
+
       // Remove empty groups
       if (group.size === 0) {
         this.groups.delete(groupId);
@@ -266,14 +270,14 @@ export class WebSocketService {
 
     // Send confirmation
     this.sendToClient(userId, {
-      type: 'group_left',
+      type: "group_left",
       data: { groupId },
       timestamp: new Date().toISOString(),
     });
 
     // Notify other group members
     this.sendToGroup(groupId, {
-      type: 'member_disconnected',
+      type: "member_disconnected",
       data: { userId, groupId },
       timestamp: new Date().toISOString(),
       groupId,
@@ -293,7 +297,7 @@ export class WebSocketService {
       client.ws.send(JSON.stringify(event));
     } catch (error) {
       console.error(`Error sending message to ${userId}:`, error);
-      this.handleDisconnection(userId, 1011, 'Send error');
+      this.handleDisconnection(userId, 1011, "Send error");
     }
   }
 
@@ -303,7 +307,7 @@ export class WebSocketService {
   private startPingInterval(): void {
     this.pingInterval = setInterval(() => {
       const now = Date.now();
-      
+
       this.clients.forEach((client, userId) => {
         if (client.ws.readyState === WebSocket.OPEN) {
           // Send ping if no activity for 30 seconds
@@ -322,17 +326,20 @@ export class WebSocketService {
     this.cleanupInterval = setInterval(() => {
       const now = Date.now();
       const deadConnections: string[] = [];
-      
+
       this.clients.forEach((client, userId) => {
         // Mark as dead if no activity for 2 minutes
-        if (now - client.lastPing > 120000 || client.ws.readyState !== WebSocket.OPEN) {
+        if (
+          now - client.lastPing > 120000 ||
+          client.ws.readyState !== WebSocket.OPEN
+        ) {
           deadConnections.push(userId);
         }
       });
 
       // Clean up dead connections
-      deadConnections.forEach(userId => {
-        this.handleDisconnection(userId, 1001, 'Timeout');
+      deadConnections.forEach((userId) => {
+        this.handleDisconnection(userId, 1001, "Timeout");
       });
 
       if (deadConnections.length > 0) {
@@ -353,7 +360,10 @@ export class WebSocketService {
     return {
       connectedClients: this.clients.size,
       activeGroups: this.groups.size,
-      totalGroups: Array.from(this.groups.values()).reduce((sum, group) => sum + group.size, 0),
+      totalGroups: Array.from(this.groups.values()).reduce(
+        (sum, group) => sum + group.size,
+        0
+      ),
       uptime: process.uptime(),
     };
   }
@@ -362,24 +372,24 @@ export class WebSocketService {
    * Shutdown WebSocket service
    */
   shutdown(): void {
-    console.log('🔄 Shutting down WebSocket service...');
-    
+    console.log("🔄 Shutting down WebSocket service...");
+
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
     }
-    
+
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
     }
 
     // Close all connections
     this.clients.forEach((client, userId) => {
-      client.ws.close(1001, 'Server shutdown');
+      client.ws.close(1001, "Server shutdown");
     });
 
     this.clients.clear();
     this.groups.clear();
-    
-    console.log('✅ WebSocket service shutdown complete');
+
+    console.log("✅ WebSocket service shutdown complete");
   }
 }

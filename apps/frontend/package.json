@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@blend-capital/blend-sdk": "^0.8.0",
+    "@creit.tech/stellar-wallets-kit": "^1.0.9",
     "@hookform/resolvers": "^3.3.2",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",

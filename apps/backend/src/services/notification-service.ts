@@ -1,11 +1,18 @@
-import { supabase } from '../lib/supabase';
-import { WebSocketService } from './websocket-service';
+import { supabase } from "../index";
+import { WebSocketService } from "./websocket-service";
 
 export interface NotificationData {
   id?: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'transaction' | 'yield' | 'group';
+  type:
+    | "info"
+    | "success"
+    | "warning"
+    | "error"
+    | "transaction"
+    | "yield"
+    | "group";
   timestamp: string;
   read: boolean;
   userId: string;
@@ -37,22 +44,26 @@ export class NotificationService {
   /**
    * Create a new notification
    */
-  static async createNotification(data: Omit<NotificationData, 'id'>): Promise<NotificationData> {
+  static async createNotification(
+    data: Omit<NotificationData, "id">
+  ): Promise<NotificationData> {
     const { data: notification, error } = await supabase
-      .from('notifications')
-      .insert([{
-        title: data.title,
-        message: data.message,
-        type: data.type,
-        timestamp: data.timestamp,
-        read: data.read,
-        user_id: data.userId,
-        group_id: data.groupId,
-        transaction_id: data.transactionId,
-        amount: data.amount,
-        action_url: data.actionUrl,
-        metadata: data.metadata,
-      }])
+      .from("notifications")
+      .insert([
+        {
+          title: data.title,
+          message: data.message,
+          type: data.type,
+          timestamp: data.timestamp,
+          read: data.read,
+          user_id: data.userId,
+          group_id: data.groupId,
+          transaction_id: data.transactionId,
+          amount: data.amount,
+          action_url: data.actionUrl,
+          metadata: data.metadata,
+        },
+      ])
       .select()
       .single();
 
@@ -67,20 +78,20 @@ export class NotificationService {
    * Get user's notifications
    */
   static async getUserNotifications(
-    userId: string, 
+    userId: string,
     options: { limit?: number; offset?: number; unreadOnly?: boolean } = {}
   ): Promise<NotificationData[]> {
     const { limit = 50, offset = 0, unreadOnly = false } = options;
 
     let query = supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('timestamp', { ascending: false })
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("timestamp", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (unreadOnly) {
-      query = query.eq('read', false);
+      query = query.eq("read", false);
     }
 
     const { data: notifications, error } = await query;
@@ -97,9 +108,9 @@ export class NotificationService {
    */
   static async markAsRead(notificationId: string): Promise<void> {
     const { error } = await supabase
-      .from('notifications')
+      .from("notifications")
       .update({ read: true, read_at: new Date().toISOString() })
-      .eq('id', notificationId);
+      .eq("id", notificationId);
 
     if (error) {
       throw new Error(`Failed to mark notification as read: ${error.message}`);
@@ -111,13 +122,15 @@ export class NotificationService {
    */
   static async markAllAsRead(userId: string): Promise<void> {
     const { error } = await supabase
-      .from('notifications')
+      .from("notifications")
       .update({ read: true, read_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .eq('read', false);
+      .eq("user_id", userId)
+      .eq("read", false);
 
     if (error) {
-      throw new Error(`Failed to mark all notifications as read: ${error.message}`);
+      throw new Error(
+        `Failed to mark all notifications as read: ${error.message}`
+      );
     }
   }
 
@@ -126,9 +139,9 @@ export class NotificationService {
    */
   static async deleteNotification(notificationId: string): Promise<void> {
     const { error } = await supabase
-      .from('notifications')
+      .from("notifications")
       .delete()
-      .eq('id', notificationId);
+      .eq("id", notificationId);
 
     if (error) {
       throw new Error(`Failed to delete notification: ${error.message}`);
@@ -138,15 +151,20 @@ export class NotificationService {
   /**
    * Get notification preferences for a user
    */
-  static async getNotificationPreferences(userId: string): Promise<NotificationPreferences> {
+  static async getNotificationPreferences(
+    userId: string
+  ): Promise<NotificationPreferences> {
     const { data: preferences, error } = await supabase
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_id', userId)
+      .from("notification_preferences")
+      .select("*")
+      .eq("user_id", userId)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // Not found error
-      throw new Error(`Failed to fetch notification preferences: ${error.message}`);
+    if (error && error.code !== "PGRST116") {
+      // Not found error
+      throw new Error(
+        `Failed to fetch notification preferences: ${error.message}`
+      );
     }
 
     // Return default preferences if none exist
@@ -163,8 +181,8 @@ export class NotificationService {
         },
         quietHours: {
           enabled: false,
-          start: '22:00',
-          end: '08:00',
+          start: "22:00",
+          end: "08:00",
         },
       };
     }
@@ -181,8 +199,8 @@ export class NotificationService {
       },
       quietHours: preferences.quiet_hours || {
         enabled: false,
-        start: '22:00',
-        end: '08:00',
+        start: "22:00",
+        end: "08:00",
       },
     };
   }
@@ -191,7 +209,7 @@ export class NotificationService {
    * Update notification preferences for a user
    */
   static async updateNotificationPreferences(
-    userId: string, 
+    userId: string,
     preferences: Partial<NotificationPreferences>
   ): Promise<void> {
     const updateData = {
@@ -205,30 +223,34 @@ export class NotificationService {
     };
 
     // Remove undefined values
-    Object.keys(updateData).forEach(key => {
+    Object.keys(updateData).forEach((key) => {
       if (updateData[key as keyof typeof updateData] === undefined) {
         delete updateData[key as keyof typeof updateData];
       }
     });
 
     const { error } = await supabase
-      .from('notification_preferences')
+      .from("notification_preferences")
       .upsert([updateData]);
 
     if (error) {
-      throw new Error(`Failed to update notification preferences: ${error.message}`);
+      throw new Error(
+        `Failed to update notification preferences: ${error.message}`
+      );
     }
   }
 
   /**
    * Send real-time notification via WebSocket
    */
-  static async sendRealtimeNotification(notification: NotificationData): Promise<void> {
+  static async sendRealtimeNotification(
+    notification: NotificationData
+  ): Promise<void> {
     try {
       const wsService = WebSocketService.getInstance();
-      
+
       const realtimeEvent = {
-        type: 'notification',
+        type: "notification",
         data: notification,
         timestamp: new Date().toISOString(),
         userId: notification.userId,
@@ -236,13 +258,13 @@ export class NotificationService {
       };
 
       wsService.sendToUser(notification.userId, realtimeEvent);
-      
+
       // Also send to group if applicable
       if (notification.groupId) {
         wsService.sendToGroup(notification.groupId, realtimeEvent);
       }
     } catch (error) {
-      console.error('Error sending real-time notification:', error);
+      console.error("Error sending real-time notification:", error);
       // Don't throw error here as notification is already created
     }
   }
@@ -251,20 +273,20 @@ export class NotificationService {
    * Track notification interactions
    */
   static async trackInteraction(
-    notificationId: string, 
-    action: string, 
+    notificationId: string,
+    action: string,
     timestamp: string
   ): Promise<void> {
-    const { error } = await supabase
-      .from('notification_interactions')
-      .insert([{
+    const { error } = await supabase.from("notification_interactions").insert([
+      {
         notification_id: notificationId,
         action,
         timestamp,
-      }]);
+      },
+    ]);
 
     if (error) {
-      console.error('Failed to track notification interaction:', error.message);
+      console.error("Failed to track notification interaction:", error.message);
       // Don't throw error for tracking failures
     }
   }
@@ -275,13 +297,13 @@ export class NotificationService {
   static async getAnalytics(userId: string, period: string): Promise<any> {
     try {
       const startDate = this.getStartDateForPeriod(period);
-      
+
       // Get notification counts by type
       const { data: typeCounts, error: typeError } = await supabase
-        .from('notifications')
-        .select('type')
-        .eq('user_id', userId)
-        .gte('timestamp', startDate.toISOString());
+        .from("notifications")
+        .select("type")
+        .eq("user_id", userId)
+        .gte("timestamp", startDate.toISOString());
 
       if (typeError) {
         throw new Error(`Failed to fetch type analytics: ${typeError.message}`);
@@ -289,24 +311,30 @@ export class NotificationService {
 
       // Get interaction rates
       const { data: interactions, error: interactionError } = await supabase
-        .from('notification_interactions')
-        .select('action, notification_id')
-        .gte('timestamp', startDate.toISOString());
+        .from("notification_interactions")
+        .select("action, notification_id")
+        .gte("timestamp", startDate.toISOString());
 
       if (interactionError) {
-        throw new Error(`Failed to fetch interaction analytics: ${interactionError.message}`);
+        throw new Error(
+          `Failed to fetch interaction analytics: ${interactionError.message}`
+        );
       }
 
       // Calculate analytics
-      const typeCountMap = typeCounts.reduce((acc, notification) => {
-        acc[notification.type] = (acc[notification.type] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const typeCountMap = typeCounts.reduce(
+        (acc, notification) => {
+          acc[notification.type] = (acc[notification.type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       const totalNotifications = typeCounts.length;
-      const interactionRate = totalNotifications > 0 
-        ? (interactions.length / totalNotifications) * 100 
-        : 0;
+      const interactionRate =
+        totalNotifications > 0
+          ? (interactions.length / totalNotifications) * 100
+          : 0;
 
       return {
         period,
@@ -316,7 +344,7 @@ export class NotificationService {
         interactions: interactions.length,
       };
     } catch (error) {
-      console.error('Error getting notification analytics:', error);
+      console.error("Error getting notification analytics:", error);
       return {
         period,
         totalNotifications: 0,
@@ -335,12 +363,12 @@ export class NotificationService {
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
     const { error } = await supabase
-      .from('notifications')
+      .from("notifications")
       .delete()
-      .lt('timestamp', cutoffDate.toISOString());
+      .lt("timestamp", cutoffDate.toISOString());
 
     if (error) {
-      console.error('Failed to cleanup old notifications:', error.message);
+      console.error("Failed to cleanup old notifications:", error.message);
     }
   }
 
@@ -369,13 +397,13 @@ export class NotificationService {
    */
   private static getStartDateForPeriod(period: string): Date {
     const now = new Date();
-    
+
     switch (period) {
-      case '7d':
+      case "7d":
         return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      case '30d':
+      case "30d":
         return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      case '90d':
+      case "90d":
         return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
       default:
         return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);

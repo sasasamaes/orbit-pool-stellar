@@ -1,28 +1,34 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/components/providers';
-import { AuthWrapper } from '@/components/auth/auth-wrapper';
-import { ConnectWallet } from '@/components/wallet/connect-wallet';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { WalletConnection } from '@/lib/stellar';
-import { formatCurrency, formatDate, truncateAddress } from '@/lib/utils';
-import { GroupService, GroupData, GroupMember } from '@/lib/groups';
-import { useYield } from '@/hooks/use-yield';
-import { YieldMetrics } from '@/components/yield/yield-metrics';
-import { AutoInvestControl } from '@/components/yield/auto-invest-control';
-import { YieldHistory } from '@/components/yield/yield-history';
-import { YieldActions } from '@/components/yield/yield-actions';
-import { CreateInvitation } from '@/components/invitations/create-invitation';
-import { InvitationList } from '@/components/invitations/invitation-list';
-import { useInvitations } from '@/hooks/use-invitations';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers";
+import { AuthWrapper } from "@/components/auth/auth-wrapper";
+import { ConnectWallet } from "@/components/wallet/connect-wallet";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { WalletConnection } from "@/lib/stellar";
+import { formatCurrency, formatDate, truncateAddress } from "@/lib/utils";
+import { GroupService, GroupData, GroupMember } from "@/lib/groups";
+import { useYield } from "@/hooks/use-yield";
+import { YieldMetrics } from "@/components/yield/yield-metrics";
+import { AutoInvestControl } from "@/components/yield/auto-invest-control";
+import { YieldHistory } from "@/components/yield/yield-history";
+import { YieldActions } from "@/components/yield/yield-actions";
+import { CreateInvitation } from "@/components/invitations/create-invitation";
+import { InvitationList } from "@/components/invitations/invitation-list";
+import { useInvitations } from "@/hooks/use-invitations";
+import Link from "next/link";
 import {
   ArrowLeft,
   Users,
@@ -38,19 +44,19 @@ import {
   Wallet,
   UserPlus,
   Send,
-  Loader2
-} from 'lucide-react';
+  Loader2,
+} from "lucide-react";
 
 interface Transaction {
   id: string;
-  type: 'contribution' | 'withdrawal' | 'yield_distribution';
+  type: "contribution" | "withdrawal" | "yield_distribution";
   amount: number;
   fee: number;
   userId: string;
   userName: string;
   description: string;
   stellarTxId?: string;
-  status: 'pending' | 'confirmed' | 'failed';
+  status: "pending" | "confirmed" | "failed";
   createdAt: string;
 }
 
@@ -59,21 +65,26 @@ export default function GroupDetailPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
-  
-  const [walletConnection, setWalletConnection] = useState<WalletConnection | null>(null);
+
+  const [walletConnection, setWalletConnection] =
+    useState<WalletConnection | null>(null);
   const [group, setGroup] = useState<GroupData | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [userMembership, setUserMembership] = useState<GroupMember | null>(null);
+  const [userMembership, setUserMembership] = useState<GroupMember | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'transactions' | 'yield' | 'invitations'>('overview');
-  
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "members" | "transactions" | "yield" | "invitations"
+  >("overview");
+
   // Contribution form
-  const [contributionAmount, setContributionAmount] = useState('');
+  const [contributionAmount, setContributionAmount] = useState("");
   const [isContributing, setIsContributing] = useState(false);
 
   const groupId = params.id as string;
-  
+
   // Yield management hook
   const {
     groupYieldData,
@@ -113,58 +124,176 @@ export default function GroupDetailPage() {
   const loadGroupData = async () => {
     setIsLoading(true);
     try {
-      // Load group data from smart contract
-      const groupData = await GroupService.getGroup(groupId);
-      if (!groupData) {
-        throw new Error('Group not found');
-      }
+      // For demo purposes, create mock data based on groupId
+      // In production, this would load from smart contract
+      const mockGroupData = {
+        id: groupId,
+        name:
+          groupId === "1"
+            ? "Family Savings"
+            : groupId === "2"
+              ? "Vacation Fund"
+              : "Savings Group",
+        description:
+          groupId === "1"
+            ? "Saving for family expenses and emergencies"
+            : "Planning our next vacation together",
+        creatorId: "user1",
+        inviteCode: `ABC${groupId.padStart(3, "0")}`,
+        status: "active" as const,
+        settings: {
+          minContribution: 10,
+          maxContribution: 1000,
+          withdrawalRequiresApproval: true,
+          maxMembers: 10,
+          autoInvestEnabled: true,
+        },
+        totalBalance: groupId === "1" ? 2500.75 : 1850.0,
+        totalYield: groupId === "1" ? 125.5 : 85.25,
+        memberCount: groupId === "1" ? 4 : 6,
+        createdAt: new Date(
+          Date.now() - 30 * 24 * 60 * 60 * 1000
+        ).toISOString(), // 30 days ago
+        isActive: true,
+      };
 
-      // Load group members
-      const groupMembers = await GroupService.getGroupMembers(groupId);
-
-      // Mock transactions for now - in production these would come from transaction indexing
-      const mockTransactions: Transaction[] = [
+      // Mock group members
+      const mockMembers = [
         {
-          id: '1',
-          type: 'contribution',
-          amount: 200,
-          fee: 0.1,
-          userId: groupMembers[0]?.id || 'user1',
-          userName: groupMembers[0]?.fullName || 'Unknown User',
-          description: 'Monthly contribution',
-          stellarTxId: 'abc123...def456',
-          status: 'confirmed',
-          createdAt: new Date().toISOString(),
+          id: "member1",
+          address: "GAXYZ123...ABC789",
+          fullName: "John Doe",
+          role: "admin" as const,
+          balance: groupId === "1" ? 625.19 : 308.33,
+          totalContributed: groupId === "1" ? 600 : 300,
+          yieldEarned: groupId === "1" ? 25.19 : 8.33,
+          joinedAt: mockGroupData.createdAt,
+          isAdmin: true,
         },
         {
-          id: '2',
-          type: 'yield_distribution',
-          amount: 25.75,
-          fee: 0,
-          userId: 'system',
-          userName: 'Blend Protocol',
-          description: 'Weekly yield distribution',
-          status: 'confirmed',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
+          id: "member2",
+          address: "GBDEF456...XYZ123",
+          fullName: "Jane Smith",
+          role: "member" as const,
+          balance: groupId === "1" ? 625.19 : 308.33,
+          totalContributed: groupId === "1" ? 600 : 300,
+          yieldEarned: groupId === "1" ? 25.19 : 8.33,
+          joinedAt: new Date(
+            Date.now() - 25 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+          isAdmin: false,
+        },
+        {
+          id: "member3",
+          address: "GCHIJ789...DEF456",
+          fullName: "Mike Johnson",
+          role: "member" as const,
+          balance: groupId === "1" ? 625.19 : 308.33,
+          totalContributed: groupId === "1" ? 600 : 300,
+          yieldEarned: groupId === "1" ? 25.19 : 8.33,
+          joinedAt: new Date(
+            Date.now() - 20 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+          isAdmin: false,
         },
       ];
 
-      setGroup(groupData);
-      setMembers(groupMembers);
+      // Add more members for group 2
+      if (groupId === "2") {
+        mockMembers.push(
+          {
+            id: "member4",
+            address: "GDKLM012...GHI789",
+            fullName: "Sarah Wilson",
+            role: "member" as const,
+            balance: 308.33,
+            totalContributed: 300,
+            yieldEarned: 8.33,
+            joinedAt: new Date(
+              Date.now() - 15 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+            isAdmin: false,
+          },
+          {
+            id: "member5",
+            address: "GENOP345...JKL012",
+            fullName: "Tom Brown",
+            role: "member" as const,
+            balance: 308.33,
+            totalContributed: 300,
+            yieldEarned: 8.33,
+            joinedAt: new Date(
+              Date.now() - 10 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+            isAdmin: false,
+          },
+          {
+            id: "member6",
+            address: "GFQRS678...MNO345",
+            fullName: "Lisa Davis",
+            role: "member" as const,
+            balance: 308.33,
+            totalContributed: 300,
+            yieldEarned: 8.33,
+            joinedAt: new Date(
+              Date.now() - 5 * 24 * 60 * 60 * 1000
+            ).toISOString(),
+            isAdmin: false,
+          }
+        );
+      }
+
+      // Mock transactions
+      const mockTransactions: Transaction[] = [
+        {
+          id: "1",
+          type: "contribution",
+          amount: 200,
+          fee: 0.1,
+          userId: "member1",
+          userName: "John Doe",
+          description: "Monthly contribution",
+          stellarTxId: "abc123...def456",
+          status: "confirmed",
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: "2",
+          type: "yield_distribution",
+          amount: 25.75,
+          fee: 0,
+          userId: "system",
+          userName: "Blend Protocol",
+          description: "Weekly yield distribution",
+          status: "confirmed",
+          createdAt: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          id: "3",
+          type: "contribution",
+          amount: 150,
+          fee: 0.1,
+          userId: "member2",
+          userName: "Jane Smith",
+          description: "Monthly contribution",
+          stellarTxId: "xyz789...abc123",
+          status: "confirmed",
+          createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+        },
+      ];
+
+      setGroup(mockGroupData);
+      setMembers(mockMembers);
       setTransactions(mockTransactions);
-      
-      // Find current user's membership
-      // TODO: Get current user's address from wallet connection
-      const currentUserAddress = walletConnection?.publicKey || '';
-      const currentUserMembership = groupMembers.find(m => m.address === currentUserAddress);
-      setUserMembership(currentUserMembership || null);
-      
+
+      // Set first member as current user for demo
+      setUserMembership(mockMembers[0]);
     } catch (error) {
-      console.error('Error loading group data:', error);
+      console.error("Error loading group data:", error);
       toast({
-        title: 'Error',
-        description: 'Failed to load group information.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to load group information.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -173,22 +302,25 @@ export default function GroupDetailPage() {
 
   const handleContribute = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!contributionAmount || !walletConnection) {
       toast({
-        title: 'Validation Error',
-        description: 'Please enter an amount and connect your wallet.',
-        variant: 'destructive',
+        title: "Validation Error",
+        description: "Please enter an amount and connect your wallet.",
+        variant: "destructive",
       });
       return;
     }
 
     const amount = parseFloat(contributionAmount);
-    if (amount < (group?.settings.minContribution || 0) || amount > (group?.settings.maxContribution || 0)) {
+    if (
+      amount < (group?.settings.minContribution || 0) ||
+      amount > (group?.settings.maxContribution || 0)
+    ) {
       toast({
-        title: 'Invalid Amount',
+        title: "Invalid Amount",
         description: `Amount must be between $${group?.settings.minContribution} and $${group?.settings.maxContribution}.`,
-        variant: 'destructive',
+        variant: "destructive",
       });
       return;
     }
@@ -200,25 +332,25 @@ export default function GroupDetailPage() {
         {
           groupId,
           amount,
-          tokenAddress: 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA', // Mock USDC
+          tokenAddress:
+            "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA", // Mock USDC
         },
         walletConnection
       );
-      
+
       toast({
-        title: 'Contribution Successful',
+        title: "Contribution Successful",
         description: `Successfully contributed ${formatCurrency(amount)} to the group. Transaction: ${txHash.substring(0, 8)}...`,
       });
-      
-      setContributionAmount('');
+
+      setContributionAmount("");
       loadGroupData(); // Reload data
-      
     } catch (error: any) {
-      console.error('Error contributing:', error);
+      console.error("Error contributing:", error);
       toast({
-        title: 'Contribution Failed',
-        description: error.message || 'Failed to process contribution.',
-        variant: 'destructive',
+        title: "Contribution Failed",
+        description: error.message || "Failed to process contribution.",
+        variant: "destructive",
       });
     } finally {
       setIsContributing(false);
@@ -229,8 +361,8 @@ export default function GroupDetailPage() {
     if (group) {
       navigator.clipboard.writeText(group.inviteCode);
       toast({
-        title: 'Invite Code Copied',
-        description: 'Share this code with others to invite them to the group.',
+        title: "Invite Code Copied",
+        description: "Share this code with others to invite them to the group.",
       });
     }
   };
@@ -255,7 +387,8 @@ export default function GroupDetailPage() {
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">Group Not Found</h1>
             <p className="text-muted-foreground mb-4">
-              The group you're looking for doesn't exist or you don't have access to it.
+              The group you're looking for doesn't exist or you don't have
+              access to it.
             </p>
             <Button asChild>
               <Link href="/dashboard">Back to Dashboard</Link>
@@ -273,8 +406,8 @@ export default function GroupDetailPage() {
         <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="container flex h-16 items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Link 
-                href="/dashboard" 
+              <Link
+                href="/dashboard"
                 className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -282,17 +415,19 @@ export default function GroupDetailPage() {
               </Link>
               <div className="h-4 w-px bg-border" />
               <h1 className="text-xl font-bold">{group.name}</h1>
-              <Badge variant={group.status === 'active' ? 'default' : 'secondary'}>
+              <Badge
+                variant={group.status === "active" ? "default" : "secondary"}
+              >
                 {group.status}
               </Badge>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" onClick={copyInviteCode}>
                 <Copy className="mr-2 h-4 w-4" />
                 {group.inviteCode}
               </Button>
-              {userMembership?.role === 'admin' && (
+              {userMembership?.role === "admin" && (
                 <Button variant="ghost" size="sm">
                   <Settings className="h-4 w-4" />
                 </Button>
@@ -309,11 +444,15 @@ export default function GroupDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
+                    <CardTitle className="text-sm font-medium">
+                      Total Balance
+                    </CardTitle>
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{formatCurrency(group.totalBalance)}</div>
+                    <div className="text-2xl font-bold">
+                      {formatCurrency(group.totalBalance)}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       +{formatCurrency(group.totalYield)} yield earned
                     </p>
@@ -322,7 +461,9 @@ export default function GroupDetailPage() {
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Your Balance</CardTitle>
+                    <CardTitle className="text-sm font-medium">
+                      Your Balance
+                    </CardTitle>
                     <Wallet className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
@@ -337,11 +478,15 @@ export default function GroupDetailPage() {
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Members</CardTitle>
+                    <CardTitle className="text-sm font-medium">
+                      Members
+                    </CardTitle>
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{group.memberCount}</div>
+                    <div className="text-2xl font-bold">
+                      {group.memberCount}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       of {group.settings.maxMembers} max
                     </p>
@@ -353,52 +498,52 @@ export default function GroupDetailPage() {
               <div className="border-b">
                 <nav className="flex space-x-8">
                   <button
-                    onClick={() => setActiveTab('overview')}
+                    onClick={() => setActiveTab("overview")}
                     className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'overview'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                      activeTab === "overview"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     Overview
                   </button>
                   <button
-                    onClick={() => setActiveTab('members')}
+                    onClick={() => setActiveTab("members")}
                     className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'members'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                      activeTab === "members"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     Members ({group.memberCount})
                   </button>
                   <button
-                    onClick={() => setActiveTab('transactions')}
+                    onClick={() => setActiveTab("transactions")}
                     className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'transactions'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                      activeTab === "transactions"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     Transactions
                   </button>
                   <button
-                    onClick={() => setActiveTab('yield')}
+                    onClick={() => setActiveTab("yield")}
                     className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'yield'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                      activeTab === "yield"
+                        ? "border-primary text-primary"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     Yield & Investment
                   </button>
-                  {userMembership?.role === 'admin' && (
+                  {userMembership?.role === "admin" && (
                     <button
-                      onClick={() => setActiveTab('invitations')}
+                      onClick={() => setActiveTab("invitations")}
                       className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === 'invitations'
-                          ? 'border-primary text-primary'
-                          : 'border-transparent text-muted-foreground hover:text-foreground'
+                        activeTab === "invitations"
+                          ? "border-primary text-primary"
+                          : "border-transparent text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       Invitations
@@ -408,7 +553,7 @@ export default function GroupDetailPage() {
               </div>
 
               {/* Tab Content */}
-              {activeTab === 'overview' && (
+              {activeTab === "overview" && (
                 <div className="space-y-6">
                   {group.description && (
                     <Card>
@@ -416,7 +561,9 @@ export default function GroupDetailPage() {
                         <CardTitle>About</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-muted-foreground">{group.description}</p>
+                        <p className="text-muted-foreground">
+                          {group.description}
+                        </p>
                       </CardContent>
                     </Card>
                   )}
@@ -428,21 +575,30 @@ export default function GroupDetailPage() {
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm font-medium">Contribution Range</p>
+                          <p className="text-sm font-medium">
+                            Contribution Range
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            {formatCurrency(group.settings.minContribution)} - {formatCurrency(group.settings.maxContribution)}
+                            {formatCurrency(group.settings.minContribution)} -{" "}
+                            {formatCurrency(group.settings.maxContribution)}
                           </p>
                         </div>
                         <div>
                           <p className="text-sm font-medium">Auto-Investment</p>
                           <p className="text-sm text-muted-foreground">
-                            {group.settings.autoInvestEnabled ? 'Enabled' : 'Disabled'}
+                            {group.settings.autoInvestEnabled
+                              ? "Enabled"
+                              : "Disabled"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm font-medium">Withdrawal Approval</p>
+                          <p className="text-sm font-medium">
+                            Withdrawal Approval
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            {group.settings.withdrawalRequiresApproval ? 'Required' : 'Not Required'}
+                            {group.settings.withdrawalRequiresApproval
+                              ? "Required"
+                              : "Not Required"}
                           </p>
                         </div>
                         <div>
@@ -457,13 +613,11 @@ export default function GroupDetailPage() {
                 </div>
               )}
 
-              {activeTab === 'members' && (
+              {activeTab === "members" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Group Members</CardTitle>
-                    <CardDescription>
-                      Members of {group.name}
-                    </CardDescription>
+                    <CardDescription>Members of {group.name}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
@@ -474,22 +628,34 @@ export default function GroupDetailPage() {
                         >
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center text-white font-medium">
-                              {member.fullName?.[0] || 'U'}
+                              {member.fullName?.[0] || "U"}
                             </div>
                             <div>
-                              <p className="font-medium">{member.fullName || 'Unknown User'}</p>
+                              <p className="font-medium">
+                                {member.fullName || "Unknown User"}
+                              </p>
                               <p className="text-sm text-muted-foreground">
-                                {truncateAddress(member.address)} • 
-                                <Badge variant={member.role === 'admin' ? 'default' : 'secondary'} className="ml-1">
+                                {truncateAddress(member.address)} •
+                                <Badge
+                                  variant={
+                                    member.role === "admin"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                  className="ml-1"
+                                >
                                   {member.role}
                                 </Badge>
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-medium">{formatCurrency(member.balance)}</p>
+                            <p className="font-medium">
+                              {formatCurrency(member.balance)}
+                            </p>
                             <p className="text-sm text-muted-foreground">
-                              {formatCurrency(member.totalContributed)} contributed
+                              {formatCurrency(member.totalContributed)}{" "}
+                              contributed
                             </p>
                           </div>
                         </div>
@@ -499,7 +665,7 @@ export default function GroupDetailPage() {
                 </Card>
               )}
 
-              {activeTab === 'transactions' && (
+              {activeTab === "transactions" && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Transaction History</CardTitle>
@@ -515,43 +681,55 @@ export default function GroupDetailPage() {
                           className="flex items-center justify-between p-4 border rounded-lg"
                         >
                           <div className="flex items-center space-x-3">
-                            <div className={`p-2 rounded-full ${
-                              transaction.type === 'contribution' 
-                                ? 'bg-blue-100 text-blue-600' 
-                                : transaction.type === 'withdrawal'
-                                ? 'bg-red-100 text-red-600'
-                                : 'bg-green-100 text-green-600'
-                            }`}>
-                              {transaction.type === 'contribution' ? (
+                            <div
+                              className={`p-2 rounded-full ${
+                                transaction.type === "contribution"
+                                  ? "bg-blue-100 text-blue-600"
+                                  : transaction.type === "withdrawal"
+                                    ? "bg-red-100 text-red-600"
+                                    : "bg-green-100 text-green-600"
+                              }`}
+                            >
+                              {transaction.type === "contribution" ? (
                                 <ArrowUpRight className="h-4 w-4" />
-                              ) : transaction.type === 'withdrawal' ? (
+                              ) : transaction.type === "withdrawal" ? (
                                 <ArrowDownRight className="h-4 w-4" />
                               ) : (
                                 <TrendingUp className="h-4 w-4" />
                               )}
                             </div>
                             <div>
-                              <p className="font-medium">{transaction.description}</p>
+                              <p className="font-medium">
+                                {transaction.description}
+                              </p>
                               <p className="text-sm text-muted-foreground">
-                                {transaction.userName} • {formatDate(transaction.createdAt)}
+                                {transaction.userName} •{" "}
+                                {formatDate(transaction.createdAt)}
                               </p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className={`font-medium ${
-                              transaction.type === 'contribution' 
-                                ? 'text-blue-600' 
-                                : transaction.type === 'withdrawal'
-                                ? 'text-red-600'
-                                : 'text-green-600'
-                            }`}>
-                              {transaction.type === 'withdrawal' ? '-' : '+'}
+                            <p
+                              className={`font-medium ${
+                                transaction.type === "contribution"
+                                  ? "text-blue-600"
+                                  : transaction.type === "withdrawal"
+                                    ? "text-red-600"
+                                    : "text-green-600"
+                              }`}
+                            >
+                              {transaction.type === "withdrawal" ? "-" : "+"}
                               {formatCurrency(transaction.amount)}
                             </p>
-                            <Badge variant={
-                              transaction.status === 'confirmed' ? 'default' :
-                              transaction.status === 'pending' ? 'secondary' : 'destructive'
-                            }>
+                            <Badge
+                              variant={
+                                transaction.status === "confirmed"
+                                  ? "default"
+                                  : transaction.status === "pending"
+                                    ? "secondary"
+                                    : "destructive"
+                              }
+                            >
                               {transaction.status}
                             </Badge>
                           </div>
@@ -562,7 +740,7 @@ export default function GroupDetailPage() {
                 </Card>
               )}
 
-              {activeTab === 'yield' && (
+              {activeTab === "yield" && (
                 <div className="space-y-6">
                   {/* Yield Metrics */}
                   <YieldMetrics
@@ -575,14 +753,20 @@ export default function GroupDetailPage() {
                   {/* Auto-invest Control */}
                   <AutoInvestControl
                     groupId={groupId}
-                    isAutoInvestEnabled={groupYieldData?.isAutoInvestEnabled || false}
+                    isAutoInvestEnabled={
+                      groupYieldData?.isAutoInvestEnabled || false
+                    }
                     currentPoolId={groupYieldData?.blendPoolId}
                     availablePools={availablePools}
                     walletConnection={walletConnection}
                     isProcessing={isYieldProcessing}
                     onEnableAutoInvest={async (poolId) => {
                       if (walletConnection) {
-                        await enableAutoInvest(groupId, poolId, walletConnection);
+                        await enableAutoInvest(
+                          groupId,
+                          poolId,
+                          walletConnection
+                        );
                       }
                     }}
                     onDisableAutoInvest={async () => {
@@ -598,16 +782,24 @@ export default function GroupDetailPage() {
                       groupId={groupId}
                       groupYieldData={groupYieldData || undefined}
                       walletConnection={walletConnection}
-                      isUserAdmin={userMembership?.role === 'admin'}
+                      isUserAdmin={userMembership?.role === "admin"}
                       isProcessing={isYieldProcessing}
                       onDepositToBlend={async (amount) => {
                         if (walletConnection) {
-                          await depositToBlend(groupId, amount, walletConnection);
+                          await depositToBlend(
+                            groupId,
+                            amount,
+                            walletConnection
+                          );
                         }
                       }}
                       onWithdrawFromBlend={async (amount) => {
                         if (walletConnection) {
-                          await withdrawFromBlend(groupId, amount, walletConnection);
+                          await withdrawFromBlend(
+                            groupId,
+                            amount,
+                            walletConnection
+                          );
                         }
                       }}
                       onDistributeYield={async () => {
@@ -624,52 +816,53 @@ export default function GroupDetailPage() {
                       showViewAllButton={true}
                       onViewTransaction={(txId) => {
                         // TODO: Open transaction viewer
-                        console.log('View transaction:', txId);
+                        console.log("View transaction:", txId);
                       }}
                     />
                   </div>
                 </div>
               )}
 
-              {activeTab === 'invitations' && userMembership?.role === 'admin' && (
-                <div className="space-y-6">
-                  {/* Create Invitation */}
-                  <CreateInvitation
-                    groupId={groupId}
-                    groupName={group?.name || 'Group'}
-                    onInvitationCreated={(invitation) => {
-                      console.log('Invitation created:', invitation);
-                      refreshInvitationsData();
-                    }}
-                    onEmailSent={(result) => {
-                      console.log('Email sent:', result);
-                      refreshInvitationsData();
-                    }}
-                  />
+              {activeTab === "invitations" &&
+                userMembership?.role === "admin" && (
+                  <div className="space-y-6">
+                    {/* Create Invitation */}
+                    <CreateInvitation
+                      groupId={groupId}
+                      groupName={group?.name || "Group"}
+                      onInvitationCreated={(invitation) => {
+                        console.log("Invitation created:", invitation);
+                        refreshInvitationsData();
+                      }}
+                      onEmailSent={(result) => {
+                        console.log("Email sent:", result);
+                        refreshInvitationsData();
+                      }}
+                    />
 
-                  {/* Invitations List */}
-                  <InvitationList
-                    invitations={invitations}
-                    analytics={analytics}
-                    isLoading={isInvitationsLoading}
-                    onCopyLink={copyInviteLink}
-                    onShareInvitation={(invitation) => {
-                      shareInvitation(
-                        group?.name || 'Group',
-                        invitation.links.secure_link,
-                        invitation.message
-                      );
-                    }}
-                    onRevokeInvitation={revokeInvitation}
-                  />
-                </div>
-              )}
+                    {/* Invitations List */}
+                    <InvitationList
+                      invitations={invitations}
+                      analytics={analytics}
+                      isLoading={isInvitationsLoading}
+                      onCopyLink={copyInviteLink}
+                      onShareInvitation={(invitation) => {
+                        shareInvitation(
+                          group?.name || "Group",
+                          invitation.links.secure_link,
+                          invitation.message
+                        );
+                      }}
+                      onRevokeInvitation={revokeInvitation}
+                    />
+                  </div>
+                )}
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Wallet Connection */}
-              <ConnectWallet 
+              <ConnectWallet
                 onConnection={setWalletConnection}
                 showBalance={true}
               />
@@ -695,15 +888,22 @@ export default function GroupDetailPage() {
                           step="0.01"
                           placeholder="0.00"
                           value={contributionAmount}
-                          onChange={(e) => setContributionAmount(e.target.value)}
+                          onChange={(e) =>
+                            setContributionAmount(e.target.value)
+                          }
                           required
                         />
                         <p className="text-xs text-muted-foreground">
-                          Min: {formatCurrency(group.settings.minContribution)} • 
-                          Max: {formatCurrency(group.settings.maxContribution)}
+                          Min: {formatCurrency(group.settings.minContribution)}{" "}
+                          • Max:{" "}
+                          {formatCurrency(group.settings.maxContribution)}
                         </p>
                       </div>
-                      <Button type="submit" disabled={isContributing} className="w-full">
+                      <Button
+                        type="submit"
+                        disabled={isContributing}
+                        className="w-full"
+                      >
                         {isContributing ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -733,16 +933,26 @@ export default function GroupDetailPage() {
                       <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
                         {group.inviteCode}
                       </code>
-                      <Button variant="ghost" size="sm" onClick={copyInviteCode}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={copyInviteCode}
+                      >
                         <Copy className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div>
                     <p className="text-sm font-medium">Your Role</p>
-                    <Badge variant={userMembership?.role === 'admin' ? 'default' : 'secondary'}>
-                      {userMembership?.role || 'member'}
+                    <Badge
+                      variant={
+                        userMembership?.role === "admin"
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {userMembership?.role || "member"}
                     </Badge>
                   </div>
 
