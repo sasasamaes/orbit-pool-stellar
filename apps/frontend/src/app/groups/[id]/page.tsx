@@ -13,6 +13,11 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { WalletConnection } from '@/lib/stellar';
 import { formatCurrency, formatDate, truncateAddress } from '@/lib/utils';
+import { useYield } from '@/hooks/use-yield';
+import { YieldMetrics } from '@/components/yield/yield-metrics';
+import { AutoInvestControl } from '@/components/yield/auto-invest-control';
+import { YieldHistory } from '@/components/yield/yield-history';
+import { YieldActions } from '@/components/yield/yield-actions';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -89,13 +94,28 @@ export default function GroupDetailPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userMembership, setUserMembership] = useState<GroupMember | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'transactions'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'transactions' | 'yield'>('overview');
   
   // Contribution form
   const [contributionAmount, setContributionAmount] = useState('');
   const [isContributing, setIsContributing] = useState(false);
 
   const groupId = params.id as string;
+  
+  // Yield management hook
+  const {
+    groupYieldData,
+    yieldMetrics,
+    availablePools,
+    isLoading: isYieldLoading,
+    isProcessing: isYieldProcessing,
+    enableAutoInvest,
+    disableAutoInvest,
+    depositToBlend,
+    withdrawFromBlend,
+    distributeYield,
+    refreshData: refreshYieldData,
+  } = useYield(groupId);
 
   useEffect(() => {
     if (groupId) {
@@ -435,6 +455,16 @@ export default function GroupDetailPage() {
                   >
                     Transactions
                   </button>
+                  <button
+                    onClick={() => setActiveTab('yield')}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'yield'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Yield & Investment
+                  </button>
                 </nav>
               </div>
 
@@ -591,6 +621,75 @@ export default function GroupDetailPage() {
                     </div>
                   </CardContent>
                 </Card>
+              )}
+
+              {activeTab === 'yield' && (
+                <div className="space-y-6">
+                  {/* Yield Metrics */}
+                  <YieldMetrics
+                    yieldInfo={yieldMetrics || undefined}
+                    groupYieldData={groupYieldData || undefined}
+                    isLoading={isYieldLoading}
+                    onRefresh={refreshYieldData}
+                  />
+
+                  {/* Auto-invest Control */}
+                  <AutoInvestControl
+                    groupId={groupId}
+                    isAutoInvestEnabled={groupYieldData?.isAutoInvestEnabled || false}
+                    currentPoolId={groupYieldData?.blendPoolId}
+                    availablePools={availablePools}
+                    walletConnection={walletConnection}
+                    isProcessing={isYieldProcessing}
+                    onEnableAutoInvest={async (poolId) => {
+                      if (walletConnection) {
+                        await enableAutoInvest(groupId, poolId, walletConnection);
+                      }
+                    }}
+                    onDisableAutoInvest={async () => {
+                      if (walletConnection) {
+                        await disableAutoInvest(groupId, walletConnection);
+                      }
+                    }}
+                  />
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Yield Actions */}
+                    <YieldActions
+                      groupId={groupId}
+                      groupYieldData={groupYieldData || undefined}
+                      walletConnection={walletConnection}
+                      isUserAdmin={userMembership?.role === 'admin'}
+                      isProcessing={isYieldProcessing}
+                      onDepositToBlend={async (amount) => {
+                        if (walletConnection) {
+                          await depositToBlend(groupId, amount, walletConnection);
+                        }
+                      }}
+                      onWithdrawFromBlend={async (amount) => {
+                        if (walletConnection) {
+                          await withdrawFromBlend(groupId, amount, walletConnection);
+                        }
+                      }}
+                      onDistributeYield={async () => {
+                        if (walletConnection) {
+                          await distributeYield(groupId, walletConnection);
+                        }
+                      }}
+                    />
+
+                    {/* Yield History */}
+                    <YieldHistory
+                      yieldHistory={groupYieldData?.yieldHistory || []}
+                      isLoading={isYieldLoading}
+                      showViewAllButton={true}
+                      onViewTransaction={(txId) => {
+                        // TODO: Open transaction viewer
+                        console.log('View transaction:', txId);
+                      }}
+                    />
+                  </div>
+                </div>
               )}
             </div>
 

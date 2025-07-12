@@ -1,0 +1,92 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "build/**"],
+      "env": ["NODE_ENV"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["NODE_ENV"]
+    },
+    "lint": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "lint:fix": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "type-check": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"],
+      "env": ["NODE_ENV"]
+    },
+    "test:coverage": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"],
+      "env": ["NODE_ENV"]
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true,
+      "env": ["NODE_ENV"]
+    },
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "outputs": ["test-results/**", "playwright-report/**"],
+      "env": ["NODE_ENV"]
+    },
+    "clean": {
+      "cache": false,
+      "outputs": []
+    },
+    "db:setup": {
+      "cache": false,
+      "outputs": []
+    },
+    "db:migrate": {
+      "cache": false,
+      "outputs": []
+    },
+    "db:seed": {
+      "cache": false,
+      "outputs": []
+    },
+    "deploy": {
+      "dependsOn": ["build"],
+      "outputs": [],
+      "env": ["NODE_ENV"]
+    },
+    "bindings": {
+      "dependsOn": ["build"],
+      "outputs": ["bindings/**"],
+      "env": ["NODE_ENV"]
+    }
+  },
+  "globalDependencies": [
+    "package.json",
+    "turbo.json",
+    "bunfig.toml",
+    ".env",
+    ".env.local",
+    ".env.*.local"
+  ],
+  "globalEnv": [
+    "NODE_ENV",
+    "BUN_ENV",
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "STELLAR_NETWORK",
+    "STELLAR_HORIZON_URL",
+    "STELLAR_SOROBAN_RPC_URL",
+    "BLEND_PROTOCOL_URL"
+  ]
+}

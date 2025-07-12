@@ -1,0 +1,44 @@
+{
+  "name": "community-wallet-shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared utilities for Community Wallet",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src --ext .ts --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^11.2.0",
+    "zod": "^3.22.4",
+    "date-fns": "^3.0.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.3.0",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.1.0",
+    "bun-types": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "bun": ">=1.0.0"
+  },
+  "keywords": [
+    "stellar",
+    "utilities",
+    "shared",
+    "validation",
+    "helpers"
+  ]
+}
