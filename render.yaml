@@ -4,12 +4,19 @@ services:
     env: node
     plan: free
     buildCommand: |
+      export SHARP_IGNORE_GLOBAL_LIBVIPS=1
+      export SHARP_FORCE_GLOBAL_LIBVIPS=false
+      export NODE_ENV=production
       bun install --frozen-lockfile
-      bun run build:frontend
-    startCommand: cd apps/frontend && bun start
+      cd apps/frontend && bun run build
+    startCommand: cd apps/frontend && npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: SHARP_IGNORE_GLOBAL_LIBVIPS
+        value: "1"
+      - key: SHARP_FORCE_GLOBAL_LIBVIPS
+        value: "false"
       - key: NEXT_PUBLIC_SUPABASE_URL
         sync: false
       - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -22,20 +29,29 @@ services:
     env: node
     plan: free
     buildCommand: |
+      export SHARP_IGNORE_GLOBAL_LIBVIPS=1
+      export SHARP_FORCE_GLOBAL_LIBVIPS=false
+      export NODE_ENV=production
       bun install --frozen-lockfile
-      bun run build:backend
-    startCommand: cd apps/backend && bun start
+      cd apps/backend && bun run build
+    startCommand: cd apps/backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      - key: SHARP_IGNORE_GLOBAL_LIBVIPS
+        value: "1"
+      - key: SHARP_FORCE_GLOBAL_LIBVIPS
+        value: "false"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: JWT_SECRET
-        generateValue: true
+        sync: false
+      - key: DATABASE_URL
+        sync: false
       - key: STELLAR_NETWORK
         value: testnet
       - key: BLEND_POOL_ADDRESS
