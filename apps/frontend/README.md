@@ -1,4 +1,4 @@
-# Frontend - Community Wallet
+# Frontend - OrbitPool
 
 ## 📱 Aplicación Next.js
 

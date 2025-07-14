@@ -2,7 +2,7 @@
   "name": "community-wallet-frontend",
   "version": "1.0.0",
   "private": true,
-  "description": "Frontend application for Community Wallet",
+  "description": "Frontend application for OrbitPool",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@blend-capital/blend-sdk": "^0.8.0",
-    "@creit.tech/stellar-wallets-kit": "^1.0.9",
+    "@creit.tech/stellar-wallets-kit": "1.7.6",
     "@hookform/resolvers": "^3.3.2",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.0.6",
@@ -31,7 +31,7 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@radix-ui/react-tooltip": "^1.0.7",
     "@stellar/freighter-api": "^1.7.1",
-    "@stellar/stellar-sdk": "^11.2.0",
+    "@stellar/stellar-sdk": "13.3.0",
     "@stellar/wallet-sdk": "^0.10.0",
     "@supabase/auth-helpers-nextjs": "^0.8.7",
     "@supabase/supabase-js": "^2.38.0",

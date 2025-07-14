@@ -125,7 +125,7 @@ export function ConnectWallet({
   const initializeKit = () => {
     try {
       const stellarKit = new StellarWalletsKit({
-        network: WalletNetwork.TESTNET,
+        network: WalletNetwork.TESTNET, // FORZAR SOLO TESTNET
         selectedWalletId: FREIGHTER_ID,
         modules: allowAllModules(),
       });
@@ -169,10 +169,58 @@ export function ConnectWallet({
     setIsConnecting(true);
     try {
       kit.setWallet(walletId);
+      
+      // TEMPORAL: Deshabilitar verificación de red para debugging
+      try {
+        const currentNetwork = await kit.getNetwork();
+        console.log('Current network:', currentNetwork); // Debug
+        console.log('Network type:', typeof currentNetwork);
+        console.log('Network keys:', Object.keys(currentNetwork));
+        
+        // TODO: Rehabilitar verificación cuando sepamos el formato correcto
+        // const isTestnet = currentNetwork.network === 'testnet';
+        // if (!isTestnet) {
+        //   toast({
+        //     title: "Red Incorrecta",
+        //     description: "Por favor cambia a Testnet en tu wallet antes de conectar",
+        //     variant: "destructive",
+        //   });
+        //   setIsConnecting(false);
+        //   return;
+        // }
+      } catch (error) {
+        console.warn('Could not verify network, proceeding anyway:', error);
+        // Continuar si no podemos verificar la red
+      }
+
       await kit.openModal({
         onWalletSelected: async (option) => {
           try {
             kit.setWallet(option.id);
+            
+            // TEMPORAL: Deshabilitar verificación de red para debugging
+            try {
+              const network = await kit.getNetwork();
+              console.log('Network during connection:', network); // Debug
+              console.log('Network type during connection:', typeof network);
+              console.log('Network keys during connection:', Object.keys(network));
+              
+              // TODO: Rehabilitar verificación cuando sepamos el formato correcto
+              // const isTestnet = network.network === 'testnet';
+              // if (!isTestnet) {
+              //   toast({
+              //     title: "Red Incorrecta",
+              //     description: "Por favor cambia a Testnet en tu wallet",
+              //     variant: "destructive",
+              //   });
+              //   setIsConnecting(false);
+              //   return;
+              // }
+            } catch (error) {
+              console.warn('Could not verify network during connection, proceeding anyway:', error);
+              // Continuar si no podemos verificar la red
+            }
+
             const { address } = await kit.getAddress();
 
             const walletName =
@@ -190,13 +238,13 @@ export function ConnectWallet({
             setShowWalletOptions(false);
 
             toast({
-              title: "Wallet Connected",
-              description: `Connected to ${walletName}: ${truncateAddress(address)}`,
+              title: "Wallet Conectada",
+              description: `Conectado a ${walletName}: ${truncateAddress(address)}`,
             });
           } catch (error: any) {
             console.error("Error connecting wallet:", error);
             toast({
-              title: "Connection Failed",
+              title: "Conexión Fallida",
               description: error.message || "Failed to connect to wallet.",
               variant: "destructive",
             });
@@ -372,10 +420,24 @@ export function ConnectWallet({
             <span>Connect Wallet</span>
           </CardTitle>
           <CardDescription>
-            Connect your Stellar wallet to start using Community Wallet.
+            Connect your Stellar wallet to start using OrbitPool.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Testnet Info */}
+          <div className="p-3 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center space-x-2 mb-2">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium text-purple-500">
+                Solo Testnet
+              </span>
+            </div>
+            <p className="text-xs text-purple-500">
+              Esta aplicación funciona solo en la red de testnet de Stellar. 
+              Asegúrate de que tu wallet esté configurada en Testnet antes de conectar.
+            </p>
+          </div>
+
           {/* Quick connect with Stellar Wallets Kit */}
           <Button
             onClick={() => connectWallet(FREIGHTER_ID)}
@@ -385,57 +447,15 @@ export function ConnectWallet({
             {isConnecting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connecting...
+                Conectando...
               </>
             ) : (
               <>
                 <Wallet className="mr-2 h-4 w-4" />
-                Connect with Stellar Wallets
+                Conectar con Stellar Wallets
               </>
             )}
           </Button>
-
-          {/* Specific wallet buttons */}
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              onClick={() => connectWallet(LOBSTR_ID)}
-              disabled={isConnecting}
-              variant="outline"
-              className="text-xs"
-            >
-              🦞 LOBSTR
-            </Button>
-            <Button
-              onClick={connectFreighter}
-              disabled={isConnecting}
-              variant="outline"
-              className="text-xs"
-            >
-              🚀 Freighter
-            </Button>
-            <Button
-              onClick={() => connectWallet(XBULL_ID)}
-              disabled={isConnecting}
-              variant="outline"
-              className="text-xs"
-            >
-              🐂 xBull
-            </Button>
-            <Button
-              onClick={() => connectWallet(ALBEDO_ID)}
-              disabled={isConnecting}
-              variant="outline"
-              className="text-xs"
-            >
-              💫 Albedo
-            </Button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">
-              Choose your preferred Stellar wallet to connect
-            </p>
-          </div>
         </CardContent>
       </Card>
     );

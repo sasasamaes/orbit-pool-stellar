@@ -85,7 +85,7 @@ export default function LoginPage() {
             </Link>
             <h1 className="text-3xl font-bold">Welcome Back</h1>
             <p className="text-muted-foreground">
-              Sign in to your Community Wallet account
+              Sign in to your OrbitPool account
             </p>
           </div>
 
