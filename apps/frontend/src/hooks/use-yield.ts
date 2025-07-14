@@ -1,7 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { BlendService, GroupYieldData, YieldInfo, BlendPoolInfo } from '@/lib/blend';
-import { WalletConnection } from '@/lib/stellar';
-import { useToast } from './use-toast';
+import { useState, useEffect, useCallback } from "react";
+import {
+  BlendService,
+  GroupYieldData,
+  YieldInfo,
+  BlendPoolInfo,
+} from "@/lib/blend";
+import { WalletConnection } from "@/lib/stellar";
+import { useToast } from "./use-toast";
 
 export interface UseYieldReturn {
   // State
@@ -14,16 +19,33 @@ export interface UseYieldReturn {
 
   // Actions
   loadYieldData: (groupId: string) => Promise<void>;
-  enableAutoInvest: (groupId: string, poolId: string, wallet: WalletConnection) => Promise<void>;
-  disableAutoInvest: (groupId: string, wallet: WalletConnection) => Promise<void>;
-  depositToBlend: (groupId: string, amount: number, wallet: WalletConnection) => Promise<void>;
-  withdrawFromBlend: (groupId: string, amount: number, wallet: WalletConnection) => Promise<void>;
+  enableAutoInvest: (
+    groupId: string,
+    poolId: string,
+    wallet: WalletConnection
+  ) => Promise<void>;
+  disableAutoInvest: (
+    groupId: string,
+    wallet: WalletConnection
+  ) => Promise<void>;
+  depositToBlend: (
+    groupId: string,
+    amount: number,
+    wallet: WalletConnection
+  ) => Promise<void>;
+  withdrawFromBlend: (
+    groupId: string,
+    amount: number,
+    wallet: WalletConnection
+  ) => Promise<void>;
   distributeYield: (groupId: string, wallet: WalletConnection) => Promise<void>;
   refreshData: () => Promise<void>;
 }
 
 export function useYield(groupId?: string): UseYieldReturn {
-  const [groupYieldData, setGroupYieldData] = useState<GroupYieldData | null>(null);
+  const [groupYieldData, setGroupYieldData] = useState<GroupYieldData | null>(
+    null
+  );
   const [yieldMetrics, setYieldMetrics] = useState<YieldInfo | null>(null);
   const [availablePools, setAvailablePools] = useState<BlendPoolInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,200 +53,221 @@ export function useYield(groupId?: string): UseYieldReturn {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const loadYieldData = useCallback(async (targetGroupId: string) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const [yieldData, metrics, pools] = await Promise.all([
-        BlendService.getGroupYieldInfo(targetGroupId),
-        BlendService.getYieldMetrics(targetGroupId),
-        BlendService.getAvailablePools(),
-      ]);
+  const loadYieldData = useCallback(
+    async (targetGroupId: string) => {
+      setIsLoading(true);
+      setError(null);
 
-      setGroupYieldData(yieldData);
-      setYieldMetrics(metrics);
-      setAvailablePools(pools);
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to load yield data';
-      setError(errorMessage);
-      toast({
-        title: 'Error Loading Yield Data',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+      try {
+        const [yieldData, metrics, pools] = await Promise.all([
+          BlendService.getGroupYieldInfo(targetGroupId),
+          BlendService.getYieldMetrics(targetGroupId),
+          BlendService.getAvailablePools(),
+        ]);
 
-  const enableAutoInvest = useCallback(async (
-    targetGroupId: string,
-    poolId: string,
-    wallet: WalletConnection
-  ) => {
-    setIsProcessing(true);
-    setError(null);
+        setGroupYieldData(yieldData);
+        setYieldMetrics(metrics);
+        setAvailablePools(pools);
+      } catch (err: any) {
+        const errorMessage = err.message || "Failed to load yield data";
+        setError(errorMessage);
+        toast({
+          title: "Error Loading Yield Data",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [toast]
+  );
 
-    try {
-      const txHash = await BlendService.enableAutoInvest(targetGroupId, poolId, wallet);
-      
-      toast({
-        title: 'Auto-Invest Enabled',
-        description: 'Group funds will now automatically earn yield via Blend Protocol.',
-      });
+  const enableAutoInvest = useCallback(
+    async (targetGroupId: string, poolId: string, wallet: WalletConnection) => {
+      setIsProcessing(true);
+      setError(null);
 
-      // Refresh data after successful transaction
-      await loadYieldData(targetGroupId);
-      
-      return txHash;
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to enable auto-invest';
-      setError(errorMessage);
-      toast({
-        title: 'Auto-Invest Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-      throw err;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [loadYieldData, toast]);
+      try {
+        const txHash = await BlendService.enableAutoInvest(
+          targetGroupId,
+          poolId,
+          wallet
+        );
 
-  const disableAutoInvest = useCallback(async (
-    targetGroupId: string,
-    wallet: WalletConnection
-  ) => {
-    setIsProcessing(true);
-    setError(null);
+        toast({
+          title: "Auto-Invest Enabled",
+          description:
+            "Group funds will now automatically earn yield via Blend Protocol.",
+        });
 
-    try {
-      const txHash = await BlendService.disableAutoInvest(targetGroupId, wallet);
-      
-      toast({
-        title: 'Auto-Invest Disabled',
-        description: 'Automatic yield generation has been turned off for this group.',
-      });
+        // Refresh data after successful transaction
+        await loadYieldData(targetGroupId);
 
-      // Refresh data after successful transaction
-      await loadYieldData(targetGroupId);
-      
-      return txHash;
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to disable auto-invest';
-      setError(errorMessage);
-      toast({
-        title: 'Operation Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-      throw err;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [loadYieldData, toast]);
+        return txHash;
+      } catch (err: any) {
+        const errorMessage = err.message || "Failed to enable auto-invest";
+        setError(errorMessage);
+        toast({
+          title: "Auto-Invest Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        throw err;
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [loadYieldData, toast]
+  );
 
-  const depositToBlend = useCallback(async (
-    targetGroupId: string,
-    amount: number,
-    wallet: WalletConnection
-  ) => {
-    setIsProcessing(true);
-    setError(null);
+  const disableAutoInvest = useCallback(
+    async (targetGroupId: string, wallet: WalletConnection) => {
+      setIsProcessing(true);
+      setError(null);
 
-    try {
-      const txHash = await BlendService.depositToBlend(targetGroupId, amount, wallet);
-      
-      toast({
-        title: 'Deposit Successful',
-        description: `${BlendService.formatYieldAmount(amount)} deposited to Blend for yield generation.`,
-      });
+      try {
+        const txHash = await BlendService.disableAutoInvest(
+          targetGroupId,
+          wallet
+        );
 
-      // Refresh data after successful transaction
-      await loadYieldData(targetGroupId);
-      
-      return txHash;
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to deposit to Blend';
-      setError(errorMessage);
-      toast({
-        title: 'Deposit Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-      throw err;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [loadYieldData, toast]);
+        toast({
+          title: "Auto-Invest Disabled",
+          description:
+            "Automatic yield generation has been turned off for this group.",
+        });
 
-  const withdrawFromBlend = useCallback(async (
-    targetGroupId: string,
-    amount: number,
-    wallet: WalletConnection
-  ) => {
-    setIsProcessing(true);
-    setError(null);
+        // Refresh data after successful transaction
+        await loadYieldData(targetGroupId);
 
-    try {
-      const txHash = await BlendService.withdrawFromBlend(targetGroupId, amount, wallet);
-      
-      toast({
-        title: 'Withdrawal Successful',
-        description: `${BlendService.formatYieldAmount(amount)} withdrawn from Blend with yield.`,
-      });
+        return txHash;
+      } catch (err: any) {
+        const errorMessage = err.message || "Failed to disable auto-invest";
+        setError(errorMessage);
+        toast({
+          title: "Operation Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        throw err;
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [loadYieldData, toast]
+  );
 
-      // Refresh data after successful transaction
-      await loadYieldData(targetGroupId);
-      
-      return txHash;
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to withdraw from Blend';
-      setError(errorMessage);
-      toast({
-        title: 'Withdrawal Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-      throw err;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [loadYieldData, toast]);
+  const depositToBlend = useCallback(
+    async (targetGroupId: string, amount: number, wallet: WalletConnection) => {
+      setIsProcessing(true);
+      setError(null);
 
-  const distributeYield = useCallback(async (
-    targetGroupId: string,
-    wallet: WalletConnection
-  ) => {
-    setIsProcessing(true);
-    setError(null);
+      try {
+        const txHash = await BlendService.depositToBlend(
+          targetGroupId,
+          amount,
+          wallet
+        );
 
-    try {
-      const txHash = await BlendService.distributeYield(targetGroupId, wallet);
-      
-      toast({
-        title: 'Yield Distributed',
-        description: 'Accumulated yield has been distributed to all group members.',
-      });
+        toast({
+          title: "Deposit Successful",
+          description: `${BlendService.formatYieldAmount(amount)} deposited to Blend for yield generation.`,
+        });
 
-      // Refresh data after successful transaction
-      await loadYieldData(targetGroupId);
-      
-      return txHash;
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to distribute yield';
-      setError(errorMessage);
-      toast({
-        title: 'Distribution Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-      throw err;
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [loadYieldData, toast]);
+        // Refresh data after successful transaction
+        await loadYieldData(targetGroupId);
+
+        return txHash;
+      } catch (err: any) {
+        const errorMessage = err.message || "Failed to deposit to Blend";
+        setError(errorMessage);
+        toast({
+          title: "Deposit Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        throw err;
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [loadYieldData, toast]
+  );
+
+  const withdrawFromBlend = useCallback(
+    async (targetGroupId: string, amount: number, wallet: WalletConnection) => {
+      setIsProcessing(true);
+      setError(null);
+
+      try {
+        const txHash = await BlendService.withdrawFromBlend(
+          targetGroupId,
+          amount,
+          wallet
+        );
+
+        toast({
+          title: "Withdrawal Successful",
+          description: `${BlendService.formatYieldAmount(amount)} withdrawn from Blend with yield.`,
+        });
+
+        // Refresh data after successful transaction
+        await loadYieldData(targetGroupId);
+
+        return txHash;
+      } catch (err: any) {
+        const errorMessage = err.message || "Failed to withdraw from Blend";
+        setError(errorMessage);
+        toast({
+          title: "Withdrawal Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        throw err;
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [loadYieldData, toast]
+  );
+
+  const distributeYield = useCallback(
+    async (targetGroupId: string, wallet: WalletConnection) => {
+      setIsProcessing(true);
+      setError(null);
+
+      try {
+        const txHash = await BlendService.distributeYield(
+          targetGroupId,
+          wallet
+        );
+
+        toast({
+          title: "Yield Distributed",
+          description:
+            "Accumulated yield has been distributed to all group members.",
+        });
+
+        // Refresh data after successful transaction
+        await loadYieldData(targetGroupId);
+
+        return txHash;
+      } catch (err: any) {
+        const errorMessage = err.message || "Failed to distribute yield";
+        setError(errorMessage);
+        toast({
+          title: "Distribution Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        throw err;
+      } finally {
+        setIsProcessing(false);
+      }
+    },
+    [loadYieldData, toast]
+  );
 
   const refreshData = useCallback(async () => {
     if (groupId) {

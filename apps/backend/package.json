@@ -5,9 +5,9 @@
   "description": "Backend API for Community Wallet",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target node --external @blend-capital/blend-sdk --external express-rate-limit || (echo 'TypeScript compilation failed, trying direct build...' && bun build src/index.ts --outdir dist --target node --external=*)",
-    "start": "bun run dist/index.js",
+    "dev": "~/.bun/bin/bun run --watch src/index.ts",
+    "build": "~/.bun/bin/bun build src/index.ts --outdir dist --target node --external @blend-capital/blend-sdk --external express-rate-limit || (echo 'TypeScript compilation failed, trying direct build...' && ~/.bun/bin/bun build src/index.ts --outdir dist --target node --external=*)",
+    "start": "~/.bun/bin/bun run dist/index.js",
     "lint": "eslint src --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "type-check": "tsc --noEmit",
