@@ -13,10 +13,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useGroups } from "@/hooks/use-groups";
 import { WalletConnection } from "@/lib/stellar";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { ApiClient } from "@/lib/api";
 import Link from "next/link";
 import {
   Plus,
@@ -29,16 +32,9 @@ import {
   LogOut,
   Wallet,
   ChevronRight,
+  UserPlus,
+  Loader2,
 } from "lucide-react";
-
-interface Transaction {
-  id: string;
-  type: string;
-  amount: number;
-  created_at: string;
-  description: string;
-  group_name: string;
-}
 
 export default function DashboardPage() {
   const { user, signOut } = useAuth();
@@ -50,48 +46,15 @@ export default function DashboardPage() {
     error: groupsError,
     refetch,
   } = useGroups();
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>(
-    []
-  );
+
   const [isLoading, setIsLoading] = useState(true);
+  const [inviteCode, setInviteCode] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (user) {
-      loadDashboardData();
-    }
-  }, [user]);
-
   const loadDashboardData = async () => {
-    setIsLoading(true);
     try {
-      // Mock transactions for now - replace with actual API calls later
-      setRecentTransactions([
-        {
-          id: "1",
-          type: "contribution",
-          amount: 100,
-          created_at: new Date().toISOString(),
-          description: "Monthly contribution",
-          group_name: "Family Savings",
-        },
-        {
-          id: "2",
-          type: "withdrawal",
-          amount: -50,
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          description: "Emergency withdrawal",
-          group_name: "Vacation Fund",
-        },
-        {
-          id: "3",
-          type: "yield",
-          amount: 12.5,
-          created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-          description: "Monthly yield distribution",
-          group_name: "Family Savings",
-        },
-      ]);
+      setIsLoading(false);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
       toast({
@@ -99,10 +62,22 @@ export default function DashboardPage() {
         description: "Failed to load dashboard data",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      // Redirect to login if not authenticated
+      window.location.href = "/auth/login";
+    }
+  }, [user]);
 
   const handleSignOut = async () => {
     try {
@@ -126,6 +101,56 @@ export default function DashboardPage() {
       title: "Wallet Disconnected",
       description: "Your wallet has been disconnected",
     });
+  };
+
+  const handleJoinGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!inviteCode.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter an invitation code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsJoining(true);
+    try {
+      const result = await ApiClient.joinGroup(inviteCode.trim().toUpperCase());
+
+      toast({
+        title: "Success! 🎉",
+        description: `You've joined the group successfully!`,
+      });
+
+      setInviteCode("");
+      refetch(); // Refresh groups list
+    } catch (error: any) {
+      console.error("Error joining group:", error);
+
+      let errorMessage = "Failed to join group. Please try again.";
+
+      if (error.message?.includes("Invalid invite code")) {
+        errorMessage = "Invalid invitation code. Please check and try again.";
+      } else if (error.message?.includes("Already a member")) {
+        errorMessage = "You're already a member of this group.";
+      } else if (error.message?.includes("maximum member limit")) {
+        errorMessage = "This group has reached its maximum member limit.";
+      } else if (error.message?.includes("not active")) {
+        errorMessage = "This group is no longer active.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      toast({
+        title: "Failed to Join Group",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   const totalBalance = groups.reduce(
@@ -273,13 +298,18 @@ export default function DashboardPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Your Groups</CardTitle>
-                  <Link href="/groups/new">
-                    <Button size="sm">
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Group
-                    </Button>
-                  </Link>
+                  <div className="flex items-center space-x-2">
+                    <Link href="/groups/new">
+                      <Button size="sm">
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Group
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
+                <CardDescription>
+                  Manage your existing groups and create new ones
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {groups.length === 0 ? (
@@ -340,51 +370,72 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Recent Transactions */}
+            {/* Join with Invitation Code */}
             <Card>
               <CardHeader>
-                <CardTitle>Recent Transactions</CardTitle>
+                <CardTitle className="flex items-center space-x-2">
+                  <UserPlus className="h-5 w-5 text-blue-600" />
+                  <span>Join with Invitation Code</span>
+                </CardTitle>
+                <CardDescription>
+                  Enter a 6-character invitation code to join an existing group
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {recentTransactions.map((transaction) => (
-                    <div
-                      key={transaction.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="flex-shrink-0">
-                          {transaction.type === "contribution" ? (
-                            <ArrowUpRight className="h-5 w-5 text-green-500" />
-                          ) : transaction.type === "withdrawal" ? (
-                            <ArrowDownRight className="h-5 w-5 text-red-500" />
-                          ) : (
-                            <TrendingUp className="h-5 w-5 text-blue-500" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium">
-                            {transaction.description}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {transaction.group_name} •{" "}
-                            {formatDate(transaction.created_at)}
-                          </div>
-                        </div>
-                      </div>
-                      <div
-                        className={`text-sm font-medium ${
-                          transaction.amount > 0
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {transaction.amount > 0 ? "+" : ""}
-                        {formatCurrency(Math.abs(transaction.amount))}
+                <form onSubmit={handleJoinGroup} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="inviteCode">Invitation Code</Label>
+                    <Input
+                      id="inviteCode"
+                      placeholder="Enter code (e.g., FGP2YT)"
+                      value={inviteCode}
+                      onChange={(e) =>
+                        setInviteCode(e.target.value.toUpperCase())
+                      }
+                      className="font-mono text-center tracking-wider text-lg"
+                      maxLength={6}
+                      disabled={isJoining}
+                      required
+                    />
+                    <p className="text-xs text-gray-500">
+                      Enter the 6-character invitation code shared with you
+                    </p>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={!inviteCode.trim() || isJoining}
+                  >
+                    {isJoining ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Joining Group...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Join Group
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-start space-x-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                      <div>
+                        <p className="text-sm text-blue-800 font-medium">
+                          How it works
+                        </p>
+                        <p className="text-xs text-blue-600 mt-1">
+                          When you join a group, you'll become a member and can
+                          start contributing to the shared savings pool. Group
+                          admins can invite members by sharing invitation codes.
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                </form>
               </CardContent>
             </Card>
           </div>
