@@ -133,4 +133,33 @@ export class ApiClient {
   static async getUserContributions(groupId: string) {
     return this.request(`/contributions/group/${groupId}`);
   }
+
+  static async getBlendYieldInfo(groupId: string) {
+    return this.request(`/groups/${groupId}/blend-yield`);
+  }
+
+  static async triggerAutoInvest(groupId: string, minAmount?: number) {
+    return this.request(`/groups/${groupId}/auto-invest`, {
+      method: "POST",
+      body: JSON.stringify({ minAmount }),
+    });
+  }
+
+  static async manualInvestInBlend(groupId: string, amount: number) {
+    return this.request(`/groups/${groupId}/manual-invest`, {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    });
+  }
+
+  static async withdrawFromBlend(
+    groupId: string,
+    amount: number,
+    reason?: string
+  ) {
+    return this.request(`/groups/${groupId}/withdraw-blend`, {
+      method: "POST",
+      body: JSON.stringify({ amount, reason }),
+    });
+  }
 }

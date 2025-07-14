@@ -401,3 +401,112 @@ BEGIN
     RETURN expired_count;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Tabla para registrar las inversiones automáticas en Blend
+CREATE TABLE IF NOT EXISTS group_blend_investments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    amount_invested DECIMAL(20, 7) NOT NULL, -- Cantidad invertida en USDC
+    transaction_hash VARCHAR(64) NOT NULL, -- Hash de la transacción Stellar
+    investment_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    triggered_by UUID NOT NULL REFERENCES users(id), -- Usuario que activó la inversión
+    investment_type VARCHAR(20) DEFAULT 'auto' CHECK (investment_type IN ('auto', 'manual')), -- Tipo de inversión
+    
+    -- Metadatos adicionales
+    metadata JSONB DEFAULT '{}',
+    
+    -- Índices
+    CONSTRAINT positive_amount_invested CHECK (amount_invested > 0),
+    
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tabla para registrar los retiros de Blend
+CREATE TABLE IF NOT EXISTS group_blend_withdrawals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    amount_withdrawn DECIMAL(20, 7) NOT NULL, -- Cantidad retirada en USDC
+    transaction_hash VARCHAR(64) NOT NULL, -- Hash de la transacción Stellar
+    withdrawal_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reason TEXT, -- Razón del retiro
+    triggered_by UUID NOT NULL REFERENCES users(id), -- Usuario que activó el retiro
+    
+    -- Metadatos adicionales
+    metadata JSONB DEFAULT '{}',
+    
+    -- Índices
+    CONSTRAINT positive_amount_withdrawn CHECK (amount_withdrawn > 0),
+    
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tabla para almacenar configuraciones de auto-inversión por grupo
+CREATE TABLE IF NOT EXISTS group_blend_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE UNIQUE,
+    
+    -- Configuraciones de auto-inversión
+    auto_invest_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    min_amount_to_invest DECIMAL(20, 7) NOT NULL DEFAULT 100, -- Mínimo $100 USDC
+    investment_day INTEGER NOT NULL DEFAULT 3, -- Día del mes (1-28)
+    reserve_amount DECIMAL(20, 7) NOT NULL DEFAULT 10, -- Cantidad a reservar para fees
+    
+    -- Pool de Blend a usar
+    blend_pool_address VARCHAR(56), -- Dirección del pool de Blend
+    
+    -- Estadísticas
+    total_invested DECIMAL(20, 7) NOT NULL DEFAULT 0,
+    total_withdrawn DECIMAL(20, 7) NOT NULL DEFAULT 0,
+    total_yield_earned DECIMAL(20, 7) NOT NULL DEFAULT 0,
+    last_investment_date TIMESTAMPTZ,
+    
+    -- Metadatos
+    metadata JSONB DEFAULT '{}',
+    
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Crear índices para optimizar consultas
+CREATE INDEX IF NOT EXISTS idx_group_blend_investments_group_id ON group_blend_investments(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_blend_investments_date ON group_blend_investments(investment_date DESC);
+CREATE INDEX IF NOT EXISTS idx_group_blend_investments_type ON group_blend_investments(investment_type);
+CREATE INDEX IF NOT EXISTS idx_group_blend_withdrawals_group_id ON group_blend_withdrawals(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_blend_withdrawals_date ON group_blend_withdrawals(withdrawal_date DESC);
+CREATE INDEX IF NOT EXISTS idx_group_blend_settings_group_id ON group_blend_settings(group_id);
+
+-- Triggers para actualizar updated_at automáticamente
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_group_blend_investments_updated_at BEFORE UPDATE ON group_blend_investments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_group_blend_withdrawals_updated_at BEFORE UPDATE ON group_blend_withdrawals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_group_blend_settings_updated_at BEFORE UPDATE ON group_blend_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Tabla para logs de ejecución del job de auto-inversión
+CREATE TABLE IF NOT EXISTS auto_invest_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    execution_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    -- Estadísticas de ejecución
+    groups_processed INTEGER NOT NULL DEFAULT 0,
+    successful_investments INTEGER NOT NULL DEFAULT 0,
+    failed_investments INTEGER NOT NULL DEFAULT 0,
+    total_amount_invested DECIMAL(20, 7) NOT NULL DEFAULT 0,
+    
+    -- Errores y detalles
+    errors TEXT[] DEFAULT '{}',
+    metadata JSONB DEFAULT '{}',
+    
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Índices para la tabla de logs
+CREATE INDEX IF NOT EXISTS idx_auto_invest_logs_execution_date ON auto_invest_logs(execution_date DESC);

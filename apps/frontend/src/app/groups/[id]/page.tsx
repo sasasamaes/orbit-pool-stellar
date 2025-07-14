@@ -24,6 +24,7 @@ import { ApiClient } from "@/lib/api";
 import { CreateInvitation } from "@/components/invitations/create-invitation";
 import { InvitationList } from "@/components/invitations/invitation-list";
 import { useInvitations } from "@/hooks/use-invitations";
+import { BlendYieldDashboard } from "@/components/yield/blend-yield-dashboard";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -71,7 +72,7 @@ export default function GroupDetailPage() {
   );
   const [isCheckingUSDC, setIsCheckingUSDC] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    "overview" | "members" | "transactions" | "invitations"
+    "overview" | "members" | "transactions" | "yield" | "invitations"
   >("overview");
 
   // Get user's membership info from group data
@@ -575,6 +576,11 @@ export default function GroupDetailPage() {
                   id: "transactions",
                   label: "Transactions",
                   icon: ArrowUpRight,
+                },
+                {
+                  id: "yield",
+                  label: "Yield",
+                  icon: TrendingUp,
                 },
                 ...(isAdmin
                   ? [
@@ -1161,6 +1167,10 @@ export default function GroupDetailPage() {
                 )}
               </CardContent>
             </Card>
+          )}
+
+          {activeTab === "yield" && (
+            <BlendYieldDashboard groupId={groupId} isAdmin={isAdmin} />
           )}
 
           {activeTab === "invitations" && isAdmin && (

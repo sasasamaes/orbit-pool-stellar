@@ -21,7 +21,7 @@
       "name": "community-wallet-backend",
       "version": "1.0.0",
       "dependencies": {
-        "@blend-capital/blend-sdk": "^0.8.0",
+        "@blend-capital/blend-sdk": "3.1.0",
         "@stellar/stellar-sdk": "^11.2.0",
         "@supabase/supabase-js": "^2.38.0",
         "bcryptjs": "^2.4.3",
@@ -204,7 +204,7 @@
 
     "@babel/runtime": ["@babel/runtime@7.27.6", "", {}, "sha512-vbavdySgbTTrmFE+EsiqUTzlOr5bzlnJtUv9PynGCAKvfQqjIXbvFdumPM/GxMDfyuGMJaJAU6TO4zc1Jf1i8Q=="],
 
-    "@blend-capital/blend-sdk": ["@blend-capital/blend-sdk@0.8.0", "", { "dependencies": { "buffer": "6.0.3", "stellar-sdk": "^11.2.2" } }, "sha512-TypHzPTNmXmbwBIguNIwqV8F78nOCDquTnLhx2YyWVaoKgx6NyCRsgmhd15rp6pMI6430cSZwjva+FJdt4th2A=="],
+    "@blend-capital/blend-sdk": ["@blend-capital/blend-sdk@3.1.0", "", { "dependencies": { "@stellar/stellar-sdk": "13.3.0", "buffer": "6.0.3", "follow-redirects": ">=1.15.6" } }, "sha512-rfcZFVlfa9tJpqGfbxmeMioOWBTVzInR7vifJWNxpKz5mji16i7kHlIFEuRHiXnXiQP6cpEnkHCP4fvjoeBXqQ=="],
 
     "@colors/colors": ["@colors/colors@1.6.0", "", {}, "sha512-Ir+AOibqzrIsL6ajt3Rz3LskB7OiMVHqltZmspbW/TJuTVuyOMirVqAkjfY6JISiLHgyNqicAC8AyHHGzNd/dA=="],
 
@@ -2590,6 +2590,8 @@
 
     "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
+    "@blend-capital/blend-sdk/@stellar/stellar-sdk": ["@stellar/stellar-sdk@13.3.0", "", { "dependencies": { "@stellar/stellar-base": "^13.1.0", "axios": "^1.8.4", "bignumber.js": "^9.3.0", "eventsource": "^2.0.2", "feaxios": "^0.0.23", "randombytes": "^2.1.0", "toml": "^3.0.0", "urijs": "^1.19.1" } }, "sha512-8+GHcZLp+mdin8gSjcgfb/Lb6sSMYRX6Nf/0LcSJxvjLQR0XHpjGzOiRbYb2jSXo51EnA6kAV5j+4Pzh5OUKUg=="],
+
     "@creit.tech/stellar-wallets-kit/@stellar/freighter-api": ["@stellar/freighter-api@4.0.0", "", { "dependencies": { "buffer": "^6.0.3", "semver": "^7.6.3" } }, "sha512-LYuVAUuvmZhzissBoAQPu2InD+R7WW1NUAJZ3iD0mPa/e5pMEhQSQUQoBWLcSpSrsQduRSDqEn5Egu8caUjLgQ=="],
 
     "@everstake/wallet-sdk-solana/@solana/web3.js": ["@solana/web3.js@2.0.0", "", { "dependencies": { "@solana/accounts": "2.0.0", "@solana/addresses": "2.0.0", "@solana/codecs": "2.0.0", "@solana/errors": "2.0.0", "@solana/functional": "2.0.0", "@solana/instructions": "2.0.0", "@solana/keys": "2.0.0", "@solana/programs": "2.0.0", "@solana/rpc": "2.0.0", "@solana/rpc-parsed-types": "2.0.0", "@solana/rpc-spec-types": "2.0.0", "@solana/rpc-subscriptions": "2.0.0", "@solana/rpc-types": "2.0.0", "@solana/signers": "2.0.0", "@solana/sysvars": "2.0.0", "@solana/transaction-confirmation": "2.0.0", "@solana/transaction-messages": "2.0.0", "@solana/transactions": "2.0.0" }, "peerDependencies": { "typescript": ">=5" } }, "sha512-x+ZRB2/r5tVK/xw8QRbAfgPcX51G9f2ifEyAQ/J5npOO+6+MPeeCjtr5UxHNDAYs9Ypo0PN+YJATCO4vhzQJGg=="],
@@ -2848,6 +2850,8 @@
 
     "colorspace/color": ["color@3.2.1", "", { "dependencies": { "color-convert": "^1.9.3", "color-string": "^1.6.0" } }, "sha512-aBl7dZI9ENN6fUGC7mWpMTPNHmWUSNan9tuWN6ahh5ZLNk9baLJOnSMlrQkHcrfFgz2/RigjUVAjdx36VcemKA=="],
 
+    "community-wallet-frontend/@blend-capital/blend-sdk": ["@blend-capital/blend-sdk@0.8.0", "", { "dependencies": { "buffer": "6.0.3", "stellar-sdk": "^11.2.2" } }, "sha512-TypHzPTNmXmbwBIguNIwqV8F78nOCDquTnLhx2YyWVaoKgx6NyCRsgmhd15rp6pMI6430cSZwjva+FJdt4th2A=="],
+
     "community-wallet-frontend/@stellar/stellar-sdk": ["@stellar/stellar-sdk@13.3.0", "", { "dependencies": { "@stellar/stellar-base": "^13.1.0", "axios": "^1.8.4", "bignumber.js": "^9.3.0", "eventsource": "^2.0.2", "feaxios": "^0.0.23", "randombytes": "^2.1.0", "toml": "^3.0.0", "urijs": "^1.19.1" } }, "sha512-8+GHcZLp+mdin8gSjcgfb/Lb6sSMYRX6Nf/0LcSJxvjLQR0XHpjGzOiRbYb2jSXo51EnA6kAV5j+4Pzh5OUKUg=="],
 
     "compression/debug": ["debug@2.6.9", "", { "dependencies": { "ms": "2.0.0" } }, "sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA=="],
@@ -3019,6 +3023,8 @@
     "yargs/string-width": ["string-width@4.2.3", "", { "dependencies": { "emoji-regex": "^8.0.0", "is-fullwidth-code-point": "^3.0.0", "strip-ansi": "^6.0.1" } }, "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g=="],
 
     "z-schema/commander": ["commander@10.0.1", "", {}, "sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug=="],
+
+    "@blend-capital/blend-sdk/@stellar/stellar-sdk/@stellar/stellar-base": ["@stellar/stellar-base@13.1.0", "", { "dependencies": { "@stellar/js-xdr": "^3.1.2", "base32.js": "^0.1.0", "bignumber.js": "^9.1.2", "buffer": "^6.0.3", "sha.js": "^2.3.6", "tweetnacl": "^1.0.3" }, "optionalDependencies": { "sodium-native": "^4.3.3" } }, "sha512-90EArG+eCCEzDGj3OJNoCtwpWDwxjv+rs/RNPhvg4bulpjN/CSRj+Ys/SalRcfM4/WRC5/qAfjzmJBAuquWhkA=="],
 
     "@everstake/wallet-sdk-solana/@solana/web3.js/@solana/errors": ["@solana/errors@2.0.0", "", { "dependencies": { "chalk": "^5.3.0", "commander": "^12.1.0" }, "peerDependencies": { "typescript": ">=5" }, "bin": { "errors": "bin/cli.mjs" } }, "sha512-IHlaPFSy4lvYco1oHJ3X8DbchWwAwJaL/4wZKnF1ugwZ0g0re8wbABrqNOe/jyZ84VU9Z14PYM8W9oDAebdJbw=="],
 
