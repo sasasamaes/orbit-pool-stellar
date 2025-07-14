@@ -16,7 +16,8 @@
     "dev": "turbo dev",
     "dev:frontend": "turbo dev --filter=frontend",
     "dev:backend": "turbo dev --filter=backend",
-    "build": "turbo build",
+    "build": "chmod +x build.sh && ./build.sh",
+    "build:render": "bun install --frozen-lockfile && turbo build",
     "build:frontend": "turbo build --filter=frontend",
     "build:backend": "turbo build --filter=backend",
     "build:contracts": "turbo build --filter=contracts",
@@ -34,7 +35,8 @@
     "db:migrate": "turbo db:migrate --filter=backend",
     "db:seed": "turbo db:seed --filter=backend",
     "deploy:contracts": "turbo deploy --filter=contracts",
-    "start": "turbo start"
+    "start": "turbo start",
+    "postinstall": "echo 'Instalación completada - listo para build'"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -42,6 +44,7 @@
     "eslint-config-prettier": "^9.1.0",
     "husky": "^8.0.3",
     "lint-staged": "^15.2.0",
+    "node-gyp": "^9.0.0",
     "prettier": "^3.1.0",
     "turbo": "2.5.4",
     "typescript": "^5.3.0"
