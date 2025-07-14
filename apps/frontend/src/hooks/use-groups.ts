@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ApiClient } from "@/lib/api";
 
 export interface Group {
@@ -26,7 +26,7 @@ export const useGroups = (): UseGroupsResult => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -40,12 +40,12 @@ export const useGroups = (): UseGroupsResult => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchGroups();
-  }, []);
-  console.log("groups", groups);
+  }, [fetchGroups]);
+
   return {
     groups,
     isLoading,
