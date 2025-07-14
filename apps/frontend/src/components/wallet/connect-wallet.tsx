@@ -136,7 +136,25 @@ export function ConnectWallet({
   };
 
   const checkExistingConnection = async () => {
-    // Check Freighter first for backward compatibility
+    // First, check localStorage for saved connection
+    try {
+      const savedConnection = localStorage.getItem("stellar_wallet_connection");
+      if (savedConnection) {
+        const connectionData = JSON.parse(savedConnection);
+        const walletConnection: WalletConnection = {
+          publicKey: connectionData.publicKey,
+          isConnected: true,
+          name: connectionData.name,
+        };
+        setConnection(walletConnection);
+        onConnection?.(walletConnection);
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking saved connection:", error);
+    }
+
+    // Check Freighter for backward compatibility
     if (typeof window !== "undefined" && "freighter" in window) {
       try {
         const isConnected = await (window as any).freighter.isConnected();
@@ -147,6 +165,16 @@ export function ConnectWallet({
             isConnected: true,
             name: "Freighter",
           };
+
+          // Save to localStorage
+          localStorage.setItem(
+            "stellar_wallet_connection",
+            JSON.stringify({
+              publicKey,
+              name: "Freighter",
+            })
+          );
+
           setConnection(walletConnection);
           onConnection?.(walletConnection);
         }
@@ -233,6 +261,15 @@ export function ConnectWallet({
               name: walletName,
             };
 
+            // Save to localStorage
+            localStorage.setItem(
+              "stellar_wallet_connection",
+              JSON.stringify({
+                publicKey: address,
+                name: walletName,
+              })
+            );
+
             setConnection(walletConnection);
             onConnection?.(walletConnection);
             setShowWalletOptions(false);
@@ -287,6 +324,15 @@ export function ConnectWallet({
         isConnected: true,
         name: "Freighter",
       };
+
+      // Save to localStorage
+      localStorage.setItem(
+        "stellar_wallet_connection",
+        JSON.stringify({
+          publicKey,
+          name: "Freighter",
+        })
+      );
 
       setConnection(walletConnection);
       onConnection?.(walletConnection);
@@ -368,6 +414,9 @@ export function ConnectWallet({
     } catch (error) {
       console.error("Error disconnecting kit:", error);
     }
+
+    // Remove from localStorage
+    localStorage.removeItem("stellar_wallet_connection");
 
     setConnection(null);
     setBalances(null);
