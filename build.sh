@@ -43,7 +43,7 @@ fi
 echo "🔧 Building backend..."
 cd apps/backend
 npm install --production=false || echo "⚠️ Backend install failed, continuing..."
-npm run build || npm run type-check || echo "✅ Backend ready"
+npm run build || echo "❌ Backend build failed"
 cd ../..
 
 # 5. Build del frontend (más sensible a errores)
@@ -69,10 +69,11 @@ cd ../..
 echo "🔍 Verificando builds..."
 
 # Verificar backend
-if [ -d "apps/backend/dist" ] || [ -f "apps/backend/src/index.ts" ]; then
-  echo "✅ Backend build verificado"
+if [ -f "apps/backend/dist/index.js" ]; then
+  echo "✅ Backend build verificado (index.js creado)"
 else
-  echo "⚠️ Backend build no encontrado"
+  echo "❌ Backend build no encontrado (index.js faltante)"
+  exit 1
 fi
 
 # Verificar frontend

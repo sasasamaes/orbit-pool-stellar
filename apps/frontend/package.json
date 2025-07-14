@@ -89,5 +89,20 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "overrides": {
+    "rxjs": "^7.8.1",
+    "@stellar/wallet-sdk": {
+      "rxjs": "^7.8.1"
+    },
+    "@ledgerhq/hw-app-str": {
+      "rxjs": "^7.8.1"
+    },
+    "@ledgerhq/hw-transport": {
+      "rxjs": "^7.8.1"
+    },
+    "@ledgerhq/devices": {
+      "rxjs": "^7.8.1"
+    }
   }
 }

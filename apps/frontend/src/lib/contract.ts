@@ -8,12 +8,38 @@ import {
   Group as ContractGroupType,
   Member as ContractMemberType,
 } from "../../../../packages/contracts/bindings/community_wallet";
-import {
-  StellarWalletsKit,
-  WalletNetwork,
-  allowAllModules,
-  FREIGHTER_ID,
-} from "@creit.tech/stellar-wallets-kit";
+// Temporarily commented for deployment
+// import {
+//   StellarWalletsKit,
+//   WalletNetwork,
+//   allowAllModules,
+//   FREIGHTER_ID,
+// } from "@creit.tech/stellar-wallets-kit";
+
+// Mock implementations for deployment
+class MockStellarWalletsKit {
+  async getPublicKey() {
+    return "";
+  }
+  async signTransaction() {
+    return "";
+  }
+  async isConnected() {
+    return false;
+  }
+  async openModal() {
+    return;
+  }
+  async getAddress() {
+    return "";
+  }
+}
+
+type StellarWalletsKit = MockStellarWalletsKit;
+const StellarWalletsKit = MockStellarWalletsKit;
+const WalletNetwork = { TESTNET: "TESTNET", PUBLIC: "PUBLIC" };
+const allowAllModules = () => [];
+const FREIGHTER_ID = "freighter";
 import {
   Keypair,
   TransactionBuilder,

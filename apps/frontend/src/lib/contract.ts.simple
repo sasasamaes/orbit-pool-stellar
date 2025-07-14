@@ -1,0 +1,63 @@
+// ========================================
+// contract.ts - VERSIÓN SIMPLIFICADA PARA DEPLOYMENT
+// ========================================
+
+// Tipos básicos
+export interface ContractGroup {
+  id: string;
+  name: string;
+  creator: string;
+  members: string[];
+  total_balance: bigint;
+  total_yield: bigint;
+  blend_pool_address?: string | null;
+  auto_invest_enabled: boolean;
+  is_active: boolean;
+}
+
+export interface ContractMember {
+  address: string;
+  balance: bigint;
+  is_admin: boolean;
+  joined_at: bigint;
+}
+
+// Servicio simplificado
+export class ContractService {
+  constructor() {
+    console.log("ContractService initialized (simplified mode)");
+  }
+
+  async getGroup(groupId: string): Promise<ContractGroup | null> {
+    // Mock implementation
+    return null;
+  }
+
+  async getGroupBalance(groupId: string): Promise<bigint> {
+    return BigInt(0);
+  }
+
+  async getUserGroups(user: string): Promise<string[]> {
+    return [];
+  }
+
+  static toContractAmount(amount: number): bigint {
+    return BigInt(Math.floor(amount * 1e7));
+  }
+
+  static fromContractAmount(amount: bigint): number {
+    return Number(amount) / 1e7;
+  }
+
+  static formatAddress(address: string): string {
+    if (address.length <= 8) return address;
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  }
+
+  static isValidAddress(address: string): boolean {
+    return address.length > 0;
+  }
+}
+
+// Exportar instancia por defecto
+export const contractService = new ContractService(); 
