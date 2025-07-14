@@ -8,38 +8,46 @@ import {
   Group as ContractGroupType,
   Member as ContractMemberType,
 } from "../../../../packages/contracts/bindings/community_wallet";
-// Temporarily commented for deployment
-// import {
-//   StellarWalletsKit,
-//   WalletNetwork,
-//   allowAllModules,
-//   FREIGHTER_ID,
-// } from "@creit.tech/stellar-wallets-kit";
+// CORRECCIÓN: Usar la librería real en lugar de los mocks
+import {
+  StellarWalletsKit,
+  WalletNetwork,
+  allowAllModules,
+  FREIGHTER_ID,
+} from "@creit.tech/stellar-wallets-kit";
 
-// Mock implementations for deployment
-class MockStellarWalletsKit {
-  async getPublicKey() {
-    return "";
-  }
-  async signTransaction() {
-    return "";
-  }
-  async isConnected() {
-    return false;
-  }
-  async openModal() {
-    return;
-  }
-  async getAddress() {
-    return "";
-  }
-}
+// Mock implementations for deployment (deshabilitadas para desarrollo)
+// class MockStellarWalletsKit {
+//   network: { network: string; networkPassphrase?: string };
 
-type StellarWalletsKit = MockStellarWalletsKit;
-const StellarWalletsKit = MockStellarWalletsKit;
-const WalletNetwork = { TESTNET: "TESTNET", PUBLIC: "PUBLIC" };
-const allowAllModules = () => [];
-const FREIGHTER_ID = "freighter";
+//   constructor(options?: { network?: any; selectedWalletId?: string; modules?: any[] }) {
+//     this.network = options?.network === WalletNetwork.TESTNET
+//       ? { network: 'testnet', networkPassphrase: 'Test SDF Network ; September 2015' }
+//       : { network: 'public' };
+//   }
+
+//   async getPublicKey() {
+//     return "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
+//   }
+//   async signTransaction() {
+//     return "signed_tx";
+//   }
+//   async isConnected() {
+//     return true;
+//   }
+//   async openModal() {
+//     return;
+//   }
+//   async getAddress() {
+//     return "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
+//   }
+// }
+
+// type StellarWalletsKit = MockStellarWalletsKit;
+// const StellarWalletsKit = MockStellarWalletsKit;
+// const WalletNetwork = { TESTNET: "TESTNET", PUBLIC: "PUBLIC" };
+// const allowAllModules = () => [];
+// const FREIGHTER_ID = "freighter";
 import {
   Keypair,
   TransactionBuilder,
@@ -145,7 +153,7 @@ export class ContractService {
 
     // Verificar que esté en testnet
     try {
-      const currentNetwork = await kit.getNetwork();
+      const currentNetwork = await kit.getNetwork(); // CORRECCIÓN: Llamar a la función asíncrona
       console.log("Current wallet network:", currentNetwork);
 
       // Verificar si está en testnet
@@ -177,7 +185,7 @@ export class ContractService {
     walletKit: StellarWalletsKit
   ): Promise<string> {
     try {
-      // CORRECCIÓN: Usar el método correcto de StellarWalletsKit
+      // CORRECCIÓN: Usar el método correcto de StellarWalletsKit y destructurar el objeto
       const { address } = await walletKit.getAddress();
       return address;
     } catch (error) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ApiClient } from "@/lib/api";
 
 export interface GroupMember {
@@ -79,7 +79,8 @@ export const useGroup = (groupId: string): UseGroupResult => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchGroup = async () => {
+  const fetchGroup = useCallback(async () => {
+    if (!groupId) return;
     try {
       const response = await ApiClient.getGroup(groupId);
       if (response && typeof response === "object") {
@@ -89,19 +90,20 @@ export const useGroup = (groupId: string): UseGroupResult => {
       console.error("Error fetching group:", err);
       throw err;
     }
-  };
+  }, [groupId]);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
+    if (!groupId) return;
     try {
       const response = await ApiClient.getGroupTransactions(groupId, 1, 20);
       setTransactions(Array.isArray(response) ? response : []);
     } catch (err) {
       console.error("Error fetching transactions:", err);
-      // Don't throw here, just log the error
     }
-  };
+  }, [groupId]);
 
-  const fetchBalance = async () => {
+  const fetchBalance = useCallback(async () => {
+    if (!groupId) return;
     try {
       const response = await ApiClient.getGroupBalance(groupId);
       if (response && typeof response === "object") {
@@ -109,11 +111,11 @@ export const useGroup = (groupId: string): UseGroupResult => {
       }
     } catch (err) {
       console.error("Error fetching balance:", err);
-      // Don't throw here, just log the error
     }
-  };
+  }, [groupId]);
 
-  const fetchAllData = async () => {
+  const fetchAllData = useCallback(async () => {
+    if (!groupId) return;
     try {
       setIsLoading(true);
       setError(null);
@@ -126,13 +128,13 @@ export const useGroup = (groupId: string): UseGroupResult => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [groupId, fetchGroup, fetchTransactions, fetchBalance]);
 
   useEffect(() => {
     if (groupId) {
       fetchAllData();
     }
-  }, [groupId]);
+  }, [groupId, fetchAllData]);
 
   return {
     group,

@@ -1,13 +1,10 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Client = exports.networks = void 0;
-exports.networks = {
+export const networks = {
     testnet: {
         networkPassphrase: "Test SDF Network ; September 2015",
         contractId: "CACWNNSVIL3EMEJUKL4V6ZBBGL4M66GR65IHG5JTFD6AF7OTVETG564G",
     },
 };
-class Client {
+export class Client {
     constructor(options) {
         this.options = options;
     }
@@ -106,5 +103,3 @@ class Client {
         return "mock_withdraw_tx_hash_" + Math.random().toString(36).substring(7);
     }
 }
-exports.Client = Client;
-//# sourceMappingURL=community_wallet.js.map

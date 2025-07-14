@@ -235,10 +235,11 @@ export default function GroupDetailPage() {
         address: walletConnection.publicKey,
       });
 
-      console.log("✍️ Transaction signed:", !!signedTx);
+      console.log("✍️ Transaction signed:", !!signedTx.signedTxXdr); // CORREGIDO: Verificar la propiedad correcta
 
       // Verificar que el wallet devolvió una transacción firmada válida
-      if (!signedTx || !signedTx.signedTxXdr) {
+      if (!signedTx.signedTxXdr) {
+        // CORREGIDO: Verificar la propiedad correcta
         throw new Error(
           "Wallet failed to sign transaction or returned invalid signature"
         );
