@@ -110,7 +110,20 @@ export class ApiClient {
     group_id: string;
     amount: number;
     stellar_transaction_id: string;
-  }) {
+    wallet_address: string;
+    asset?: string;
+  }): Promise<{
+    message: string;
+    transaction: any;
+    new_balance: number;
+    validation: {
+      isValid: boolean;
+      sourceAccount: string;
+      amount: number;
+      asset: string;
+      timestamp: string;
+    };
+  }> {
     return this.request("/contributions", {
       method: "POST",
       body: JSON.stringify(contributionData),

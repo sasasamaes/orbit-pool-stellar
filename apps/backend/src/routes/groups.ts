@@ -1,9 +1,10 @@
-import { Router } from 'express';
-import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
-import { asyncHandler, createError } from '../middleware/errorHandler';
-import { supabase } from '../index';
-import { CreateGroupRequest, JoinGroupRequest } from '../types';
-import { v4 as uuidv4 } from 'uuid';
+import { Router } from "express";
+import { requireAuth, AuthenticatedRequest } from "../middleware/auth";
+import { asyncHandler, createError } from "../middleware/errorHandler";
+import { supabase } from "../index";
+import { CreateGroupRequest, JoinGroupRequest } from "../types";
+import { ContractDeploymentService } from "../services/contract-deployment-service";
+import { v4 as uuidv4 } from "uuid";
 
 const router = Router();
 
@@ -13,71 +14,147 @@ const generateInviteCode = (): string => {
 };
 
 // Create new group
-router.post('/', requireAuth, asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const { name, description, settings }: CreateGroupRequest = req.body;
+router.post(
+  "/",
+  requireAuth,
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    const { name, description, settings }: CreateGroupRequest = req.body;
 
-  if (!name || name.trim().length === 0) {
-    throw createError('Group name is required', 400);
-  }
+    if (!name || name.trim().length === 0) {
+      throw createError("Group name is required", 400);
+    }
 
-  const inviteCode = generateInviteCode();
+    const inviteCode = generateInviteCode();
 
-  // Create group
-  const { data: group, error: groupError } = await supabase
-    .from('groups')
-    .insert({
-      name: name.trim(),
-      description: description?.trim(),
-      creator_id: req.user!.id,
-      invite_code: inviteCode,
-      settings: settings || {}
-    })
-    .select()
-    .single();
+    // Create group
+    const { data: group, error: groupError } = await supabase
+      .from("groups")
+      .insert({
+        name: name.trim(),
+        description: description?.trim(),
+        creator_id: req.user!.id,
+        invite_code: inviteCode,
+        settings: settings || {},
+      })
+      .select()
+      .single();
 
-  if (groupError) {
-    throw createError(groupError.message, 400);
-  }
+    if (groupError) {
+      throw createError(groupError.message, 400);
+    }
 
-  // Add creator as admin member
-  const { error: membershipError } = await supabase
-    .from('group_memberships')
-    .insert({
-      group_id: group.id,
-      user_id: req.user!.id,
-      role: 'admin'
-    });
+    // Add creator as admin member
+    const { error: membershipError } = await supabase
+      .from("group_memberships")
+      .insert({
+        group_id: group.id,
+        user_id: req.user!.id,
+        role: "admin",
+      });
 
-  if (membershipError) {
-    // Rollback group creation
-    await supabase.from('groups').delete().eq('id', group.id);
-    throw createError('Failed to create group membership', 500);
-  }
+    if (membershipError) {
+      // Rollback group creation
+      await supabase.from("groups").delete().eq("id", group.id);
+      throw createError("Failed to create group membership", 500);
+    }
 
-  res.status(201).json(group);
-}));
+    // 🚀 Deploy individual smart contract for this group
+    console.log(
+      `🚀 Desplegando contrato inteligente para grupo: ${group.name}`
+    );
+    let contractInfo: { contractId: string; isSimulated: boolean } | null =
+      null;
+
+    try {
+      const contractService = new ContractDeploymentService();
+
+      // Prepare contract configuration
+      const contractConfig = {
+        name: group.name,
+        creator: req.user!.stellar_public_key || "TEMP_ADDRESS", // Use user's Stellar address
+        minContribution: settings?.min_contribution || 10,
+        maxContribution: settings?.max_contribution || 1000,
+        maxMembers: settings?.max_members || 50,
+        autoInvestEnabled: settings?.auto_invest_enabled || false,
+      };
+
+      // Deploy the contract
+      const deploymentResult =
+        await contractService.deployGroupContract(contractConfig);
+
+      // Update group with contract information
+      const { error: updateError } = await supabase
+        .from("groups")
+        .update({
+          stellar_account_id: deploymentResult.contractId,
+          // Store contract metadata
+          settings: {
+            ...settings,
+            contract_id: deploymentResult.contractId,
+            deployment_tx: deploymentResult.deploymentTxHash,
+            init_tx: deploymentResult.initializationTxHash,
+            is_contract_simulated: deploymentResult.isSimulated,
+            contract_deployer_key: deploymentResult.creatorKeypair.publicKey(),
+          },
+        })
+        .eq("id", group.id);
+
+      if (updateError) {
+        console.error(
+          "❌ Error updating group with contract info:",
+          updateError
+        );
+        // Don't fail the group creation, just log the error
+      } else {
+        console.log(
+          `✅ Grupo actualizado con contrato: ${deploymentResult.contractId}`
+        );
+        contractInfo = {
+          contractId: deploymentResult.contractId,
+          isSimulated: deploymentResult.isSimulated,
+        };
+      }
+    } catch (contractError) {
+      console.error("❌ Error deploying contract for group:", contractError);
+      // Don't fail group creation if contract deployment fails
+      // The group can still function with database-only operations
+    }
+
+    // Return group with contract information
+    const responseData = {
+      ...group,
+      contract_info: contractInfo,
+    };
+
+    res.status(201).json(responseData);
+  })
+);
 
 // Get group details
-router.get('/:id', requireAuth, asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const groupId = req.params.id;
+router.get(
+  "/:id",
+  requireAuth,
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    const groupId = req.params.id;
 
-  // Check if user is a member of the group
-  const { data: membership } = await supabase
-    .from('group_memberships')
-    .select('role')
-    .eq('group_id', groupId)
-    .eq('user_id', req.user!.id)
-    .eq('status', 'active')
-    .single();
+    // Check if user is a member of the group
+    const { data: membership } = await supabase
+      .from("group_memberships")
+      .select("role")
+      .eq("group_id", groupId)
+      .eq("user_id", req.user!.id)
+      .eq("status", "active")
+      .single();
 
-  if (!membership) {
-    throw createError('Group not found or access denied', 404);
-  }
+    if (!membership) {
+      throw createError("Group not found or access denied", 404);
+    }
 
-  // Get group details
-  const { data: group, error } = await supabase
-    .from('groups')
-    .select(`
+    // Get group details
+    const { data: group, error } = await supabase
+      .from("groups")
+      .select(
+        `
       *,
       group_memberships(
         id,
@@ -89,167 +166,188 @@ router.get('/:id', requireAuth, asyncHandler(async (req: AuthenticatedRequest, r
         yield_earned,
         users(full_name, avatar_url)
       )
-    `)
-    .eq('id', groupId)
-    .single();
+    `
+      )
+      .eq("id", groupId)
+      .single();
 
-  if (error) {
-    throw createError('Group not found', 404);
-  }
+    if (error) {
+      throw createError("Group not found", 404);
+    }
 
-  res.json(group);
-}));
+    res.json(group);
+  })
+);
 
 // Join group with invite code
-router.post('/join', requireAuth, asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const { invite_code }: JoinGroupRequest = req.body;
+router.post(
+  "/join",
+  requireAuth,
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    const { invite_code }: JoinGroupRequest = req.body;
 
-  if (!invite_code) {
-    throw createError('Invite code is required', 400);
-  }
-
-  // Find group by invite code
-  const { data: group, error: groupError } = await supabase
-    .from('groups')
-    .select('id, name, status, member_count, settings')
-    .eq('invite_code', invite_code.toUpperCase())
-    .single();
-
-  if (groupError || !group) {
-    throw createError('Invalid invite code', 404);
-  }
-
-  if (group.status !== 'active') {
-    throw createError('Group is not active', 400);
-  }
-
-  // Check if user is already a member
-  const { data: existingMembership } = await supabase
-    .from('group_memberships')
-    .select('id, status')
-    .eq('group_id', group.id)
-    .eq('user_id', req.user!.id)
-    .single();
-
-  if (existingMembership) {
-    if (existingMembership.status === 'active') {
-      throw createError('Already a member of this group', 400);
-    } else {
-      // Reactivate membership
-      const { data, error } = await supabase
-        .from('group_memberships')
-        .update({ status: 'active' })
-        .eq('id', existingMembership.id)
-        .select()
-        .single();
-
-      if (error) {
-        throw createError('Failed to rejoin group', 500);
-      }
-
-      return res.json({ message: 'Rejoined group successfully', membership: data });
+    if (!invite_code) {
+      throw createError("Invite code is required", 400);
     }
-  }
 
-  // Check max members limit
-  if (group.member_count >= group.settings.max_members) {
-    throw createError('Group has reached maximum member limit', 400);
-  }
+    // Find group by invite code
+    const { data: group, error: groupError } = await supabase
+      .from("groups")
+      .select("id, name, status, member_count, settings")
+      .eq("invite_code", invite_code.toUpperCase())
+      .single();
 
-  // Create new membership
-  const { data: membership, error: membershipError } = await supabase
-    .from('group_memberships')
-    .insert({
-      group_id: group.id,
-      user_id: req.user!.id,
-      role: 'member'
-    })
-    .select()
-    .single();
+    if (groupError || !group) {
+      throw createError("Invalid invite code", 404);
+    }
 
-  if (membershipError) {
-    throw createError('Failed to join group', 500);
-  }
+    if (group.status !== "active") {
+      throw createError("Group is not active", 400);
+    }
 
-  // Update group member count
-  await supabase
-    .from('groups')
-    .update({ member_count: group.member_count + 1 })
-    .eq('id', group.id);
+    // Check if user is already a member
+    const { data: existingMembership } = await supabase
+      .from("group_memberships")
+      .select("id, status")
+      .eq("group_id", group.id)
+      .eq("user_id", req.user!.id)
+      .single();
 
-  res.status(201).json({
-    message: 'Joined group successfully',
-    group: { id: group.id, name: group.name },
-    membership
-  });
-}));
+    if (existingMembership) {
+      if (existingMembership.status === "active") {
+        throw createError("Already a member of this group", 400);
+      } else {
+        // Reactivate membership
+        const { data, error } = await supabase
+          .from("group_memberships")
+          .update({ status: "active" })
+          .eq("id", existingMembership.id)
+          .select()
+          .single();
+
+        if (error) {
+          throw createError("Failed to rejoin group", 500);
+        }
+
+        return res.json({
+          message: "Rejoined group successfully",
+          membership: data,
+        });
+      }
+    }
+
+    // Check max members limit
+    if (group.member_count >= group.settings.max_members) {
+      throw createError("Group has reached maximum member limit", 400);
+    }
+
+    // Create new membership
+    const { data: membership, error: membershipError } = await supabase
+      .from("group_memberships")
+      .insert({
+        group_id: group.id,
+        user_id: req.user!.id,
+        role: "member",
+      })
+      .select()
+      .single();
+
+    if (membershipError) {
+      throw createError("Failed to join group", 500);
+    }
+
+    // Update group member count
+    await supabase
+      .from("groups")
+      .update({ member_count: group.member_count + 1 })
+      .eq("id", group.id);
+
+    res.status(201).json({
+      message: "Joined group successfully",
+      group: { id: group.id, name: group.name },
+      membership,
+    });
+  })
+);
 
 // Get group transactions
-router.get('/:id/transactions', requireAuth, asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const groupId = req.params.id;
-  const { page = 1, limit = 20 } = req.query;
+router.get(
+  "/:id/transactions",
+  requireAuth,
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    const groupId = req.params.id;
+    const { page = 1, limit = 20 } = req.query;
 
-  // Verify user is a member
-  const { data: membership } = await supabase
-    .from('group_memberships')
-    .select('id')
-    .eq('group_id', groupId)
-    .eq('user_id', req.user!.id)
-    .eq('status', 'active')
-    .single();
+    // Verify user is a member
+    const { data: membership } = await supabase
+      .from("group_memberships")
+      .select("id")
+      .eq("group_id", groupId)
+      .eq("user_id", req.user!.id)
+      .eq("status", "active")
+      .single();
 
-  if (!membership) {
-    throw createError('Access denied', 403);
-  }
+    if (!membership) {
+      throw createError("Access denied", 403);
+    }
 
-  const offset = (Number(page) - 1) * Number(limit);
+    const offset = (Number(page) - 1) * Number(limit);
 
-  const { data: transactions, error } = await supabase
-    .from('transactions')
-    .select(`
+    const { data: transactions, error } = await supabase
+      .from("transactions")
+      .select(
+        `
       *,
       users(full_name, avatar_url)
-    `)
-    .eq('group_id', groupId)
-    .order('created_at', { ascending: false })
-    .range(offset, offset + Number(limit) - 1);
+    `
+      )
+      .eq("group_id", groupId)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + Number(limit) - 1);
 
-  if (error) {
-    throw createError('Failed to fetch transactions', 500);
-  }
+    if (error) {
+      throw createError("Failed to fetch transactions", 500);
+    }
 
-  res.json(transactions);
-}));
+    res.json(transactions);
+  })
+);
 
 // Get group balance
-router.get('/:id/balance', requireAuth, asyncHandler(async (req: AuthenticatedRequest, res) => {
-  const groupId = req.params.id;
+router.get(
+  "/:id/balance",
+  requireAuth,
+  asyncHandler(async (req: AuthenticatedRequest, res) => {
+    const groupId = req.params.id;
 
-  // Verify user is a member
-  const { data: membership } = await supabase
-    .from('group_memberships')
-    .select('current_balance')
-    .eq('group_id', groupId)
-    .eq('user_id', req.user!.id)
-    .eq('status', 'active')
-    .single();
+    // Verify user is a member
+    const { data: membership } = await supabase
+      .from("group_memberships")
+      .select("current_balance")
+      .eq("group_id", groupId)
+      .eq("user_id", req.user!.id)
+      .eq("status", "active")
+      .single();
 
-  if (!membership) {
-    throw createError('Access denied', 403);
-  }
+    if (!membership) {
+      throw createError("Access denied", 403);
+    }
 
-  // Calculate and update group balance
-  const { data: totalBalance, error } = await supabase
-    .rpc('calculate_group_balance', { group_uuid: groupId });
+    // Calculate and update group balance
+    const { data: totalBalance, error } = await supabase.rpc(
+      "calculate_group_balance",
+      { group_uuid: groupId }
+    );
 
-  if (error) {
-    throw createError('Failed to calculate balance', 500);
-  }
+    if (error) {
+      throw createError("Failed to calculate balance", 500);
+    }
 
-  res.json({
-    group_total: totalBalance,
-    user_balance: membership.current_balance
-  });
-}));
+    res.json({
+      group_total: totalBalance,
+      user_balance: membership.current_balance,
+    });
+  })
+);
 
 export default router;

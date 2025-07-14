@@ -197,56 +197,79 @@ export function ConnectWallet({
     setIsConnecting(true);
     try {
       kit.setWallet(walletId);
-      
-      // TEMPORAL: Deshabilitar verificación de red para debugging
+
+      // Verificación de red habilitada - SOLO TESTNET
       try {
         const currentNetwork = await kit.getNetwork();
-        console.log('Current network:', currentNetwork); // Debug
-        console.log('Network type:', typeof currentNetwork);
-        console.log('Network keys:', Object.keys(currentNetwork));
-        
-        // TODO: Rehabilitar verificación cuando sepamos el formato correcto
-        // const isTestnet = currentNetwork.network === 'testnet';
-        // if (!isTestnet) {
-        //   toast({
-        //     title: "Red Incorrecta",
-        //     description: "Por favor cambia a Testnet en tu wallet antes de conectar",
-        //     variant: "destructive",
-        //   });
-        //   setIsConnecting(false);
-        //   return;
-        // }
+        console.log("Current network:", currentNetwork); // Debug
+
+        // Verificar si está en testnet
+        const isTestnet =
+          currentNetwork.network === "testnet" ||
+          currentNetwork.networkPassphrase ===
+            "Test SDF Network ; September 2015";
+
+        if (!isTestnet) {
+          toast({
+            title: "❌ Red Incorrecta",
+            description:
+              "Por favor cambia tu wallet a la red 'Testnet' de Stellar antes de conectar. Ve a la configuración de tu wallet y selecciona 'Testnet'.",
+            variant: "destructive",
+          });
+          setIsConnecting(false);
+          return;
+        }
       } catch (error) {
-        console.warn('Could not verify network, proceeding anyway:', error);
-        // Continuar si no podemos verificar la red
+        console.warn("Could not verify network:", error);
+        toast({
+          title: "⚠️ Error de Red",
+          description:
+            "No se pudo verificar la red del wallet. Asegúrate de que esté configurada en Testnet de Stellar.",
+          variant: "destructive",
+        });
+        setIsConnecting(false);
+        return;
       }
 
       await kit.openModal({
         onWalletSelected: async (option) => {
           try {
             kit.setWallet(option.id);
-            
-            // TEMPORAL: Deshabilitar verificación de red para debugging
+
+            // Verificación de red durante la conexión - SOLO TESTNET
             try {
               const network = await kit.getNetwork();
-              console.log('Network during connection:', network); // Debug
-              console.log('Network type during connection:', typeof network);
-              console.log('Network keys during connection:', Object.keys(network));
-              
-              // TODO: Rehabilitar verificación cuando sepamos el formato correcto
-              // const isTestnet = network.network === 'testnet';
-              // if (!isTestnet) {
-              //   toast({
-              //     title: "Red Incorrecta",
-              //     description: "Por favor cambia a Testnet en tu wallet",
-              //     variant: "destructive",
-              //   });
-              //   setIsConnecting(false);
-              //   return;
-              // }
+              console.log("Network during connection:", network); // Debug
+
+              // Verificar si está en testnet
+              const isTestnet =
+                network.network === "testnet" ||
+                network.networkPassphrase ===
+                  "Test SDF Network ; September 2015";
+
+              if (!isTestnet) {
+                toast({
+                  title: "❌ Red Incorrecta",
+                  description:
+                    "Tu wallet debe estar en Testnet. Por favor cambia la red en tu wallet y vuelve a conectar.",
+                  variant: "destructive",
+                });
+                setIsConnecting(false);
+                return;
+              }
             } catch (error) {
-              console.warn('Could not verify network during connection, proceeding anyway:', error);
-              // Continuar si no podemos verificar la red
+              console.warn(
+                "Could not verify network during connection:",
+                error
+              );
+              toast({
+                title: "⚠️ Error de Red",
+                description:
+                  "No se pudo verificar la red. Asegúrate de que tu wallet esté en Testnet.",
+                variant: "destructive",
+              });
+              setIsConnecting(false);
+              return;
             }
 
             const { address } = await kit.getAddress();
@@ -482,8 +505,9 @@ export function ConnectWallet({
               </span>
             </div>
             <p className="text-xs text-purple-500">
-              Esta aplicación funciona solo en la red de testnet de Stellar. 
-              Asegúrate de que tu wallet esté configurada en Testnet antes de conectar.
+              Esta aplicación funciona solo en la red de testnet de Stellar.
+              Asegúrate de que tu wallet esté configurada en Testnet antes de
+              conectar.
             </p>
           </div>
 

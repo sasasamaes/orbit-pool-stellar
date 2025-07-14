@@ -7,6 +7,9 @@ export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     email: string;
+    stellar_public_key?: string;
+    full_name?: string;
+    avatar_url?: string;
   };
 }
 
@@ -36,7 +39,7 @@ export const authenticateToken = async (
     // Ensure user exists in our users table
     const { data: existingUser, error: userError } = await supabase
       .from("users")
-      .select("id, email")
+      .select("id, email, stellar_public_key, full_name, avatar_url")
       .eq("id", user.id)
       .single();
 
@@ -63,10 +66,20 @@ export const authenticateToken = async (
       }
     }
 
+    // Get updated user info after potential creation
+    const { data: finalUser } = await supabase
+      .from("users")
+      .select("id, email, stellar_public_key, full_name, avatar_url")
+      .eq("id", user.id)
+      .single();
+
     // Add user info to request
     req.user = {
       id: user.id,
       email: user.email || "",
+      stellar_public_key: finalUser?.stellar_public_key || undefined,
+      full_name: finalUser?.full_name || undefined,
+      avatar_url: finalUser?.avatar_url || undefined,
     };
 
     next();

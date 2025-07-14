@@ -118,10 +118,26 @@ export class ContractService {
     });
 
     // Verificar que esté en testnet
-    const currentNetwork = await kit.getNetwork();
-    if (currentNetwork.network !== "testnet") {
-      console.warn(
-        "Wallet not on testnet, user should switch to testnet in Freighter"
+    try {
+      const currentNetwork = await kit.getNetwork();
+      console.log("Current wallet network:", currentNetwork);
+
+      // Verificar si está en testnet
+      if (
+        currentNetwork.network !== "testnet" &&
+        currentNetwork.networkPassphrase !== "Test SDF Network ; September 2015"
+      ) {
+        throw new Error(
+          "Tu wallet debe estar configurada en Testnet. Por favor cambia la red en tu wallet a 'Testnet' y vuelve a intentar."
+        );
+      }
+    } catch (error: any) {
+      console.error("Error checking network:", error);
+      if (error.message?.includes("Testnet")) {
+        throw error; // Re-throw our custom error
+      }
+      throw new Error(
+        "No se pudo verificar la red del wallet. Asegúrate de que tu wallet esté configurada en Testnet de Stellar."
       );
     }
 

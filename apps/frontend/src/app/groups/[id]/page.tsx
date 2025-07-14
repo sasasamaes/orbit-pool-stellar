@@ -41,6 +41,7 @@ import {
   UserPlus,
   Send,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 
 export default function GroupDetailPage() {
@@ -176,6 +177,107 @@ export default function GroupDetailPage() {
     }
   };
 
+  const makeRealStellarTransaction = async (
+    amount: number
+  ): Promise<string> => {
+    if (!walletConnection || !group) {
+      throw new Error("Wallet not connected or group not found");
+    }
+
+    try {
+      console.log("🔄 Creating Stellar payment transaction...");
+
+      // Import Stellar services
+      const { StellarService, USDC_ASSET } = await import("@/lib/stellar");
+
+      // Get or create group's Stellar account
+      console.log("🏦 Getting group Stellar account...");
+      const destinationAddress = await StellarService.getOrCreateGroupAccount(
+        group.id
+      );
+      console.log("💰 Using group account:", destinationAddress);
+
+      // Build the payment transaction
+      const transaction = await StellarService.buildTransaction(
+        walletConnection.publicKey,
+        [
+          StellarService.createPaymentOperation(
+            destinationAddress,
+            amount.toString(),
+            USDC_ASSET
+          ),
+        ],
+        `Contribution to group ${group.name}`
+      );
+
+      // Sign transaction using the wallet
+      const { ContractService } = await import("@/lib/contract");
+      const contractService = new ContractService();
+      const walletKit = await contractService.getWalletConnection();
+
+      console.log("🔐 Signing transaction with wallet...");
+
+      // Verificar que tenemos el XDR antes de firmar
+      const transactionXDR = transaction.toXDR();
+      if (!transactionXDR) {
+        throw new Error("Failed to generate transaction XDR");
+      }
+
+      console.log(
+        "📋 Transaction XDR generated:",
+        transactionXDR.substring(0, 50) + "..."
+      );
+
+      // Sign the transaction
+      const signedTx = await walletKit.signTransaction(transactionXDR, {
+        networkPassphrase: "Test SDF Network ; September 2015",
+        address: walletConnection.publicKey,
+      });
+
+      console.log("✍️ Transaction signed:", !!signedTx);
+
+      // Verificar que el wallet devolvió una transacción firmada válida
+      if (!signedTx || !signedTx.signedTxXdr) {
+        throw new Error(
+          "Wallet failed to sign transaction or returned invalid signature"
+        );
+      }
+
+      console.log("📤 Submitting signed transaction to Stellar network...");
+
+      // Submit the transaction
+      const result = await StellarService.submitTransaction(
+        signedTx.signedTxXdr
+      );
+
+      console.log("✅ Stellar transaction submitted:", result.hash);
+      return result.hash;
+    } catch (error: any) {
+      console.error("❌ Error making Stellar transaction:", error);
+
+      // Provide more specific error messages
+      let errorMessage = "Unknown error occurred";
+
+      if (error.message?.includes("destination is invalid")) {
+        errorMessage = "Invalid destination address for Stellar transaction";
+      } else if (error.message?.includes("insufficient funds")) {
+        errorMessage = "Insufficient USDC balance or XLM for transaction fees";
+      } else if (error.message?.includes("trustline")) {
+        errorMessage = "USDC trustline not established";
+      } else if (error.message?.includes("network")) {
+        errorMessage = "Network connection error";
+      } else if (error.message?.includes("timeout")) {
+        errorMessage = "Transaction timeout - please try again";
+      } else if (error.message?.includes("User declined")) {
+        errorMessage = "Transaction was cancelled by user";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      throw new Error(`Stellar transaction failed: ${errorMessage}`);
+    }
+  };
+
   const handleContribute = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!walletConnection || !group) return;
@@ -205,36 +307,32 @@ export default function GroupDetailPage() {
 
     setIsContributing(true);
     try {
-      // Import GroupService for Stellar transaction
+      // Step 1: Make real Stellar transaction
+      console.log("🚀 Starting real Stellar transaction...");
+      const stellarTxId = await makeRealStellarTransaction(amount);
+
+      console.log("✅ Stellar transaction successful:", stellarTxId);
+
+      // Step 2: Validate and register in backend with blockchain validation
+      console.log("📡 Validating transaction on blockchain and registering...");
       const { GroupService } = await import("@/lib/groups");
 
-      // Make the Stellar transaction using GroupService
-      console.log("🚀 Starting Stellar contribution transaction...");
-      const stellarTxId = await GroupService.contribute(
+      const result = await GroupService.contribute(
         {
           groupId: group.id,
           amount: amount,
           tokenAddress:
             "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5", // Testnet USDC
         },
-        walletConnection
+        walletConnection,
+        stellarTxId
       );
 
-      console.log("✅ Stellar transaction successful:", stellarTxId);
-
-      // Register the contribution in the backend
-      console.log("📡 Registering contribution in backend...");
-      await ApiClient.createContribution({
-        group_id: group.id,
-        amount: amount,
-        stellar_transaction_id: stellarTxId,
-      });
-
-      console.log("✅ Contribution registered in backend");
+      console.log("✅ Contribution validated and registered:", result);
 
       toast({
         title: "Contribution Successful! 🎉",
-        description: `You've contributed ${formatCurrency(amount)} to ${group.name}. Transaction: ${stellarTxId.substring(0, 8)}...`,
+        description: `You've contributed ${formatCurrency(result.validation.amount)} to ${group.name}. Validated on blockchain. Balance: ${formatCurrency(result.newBalance)}`,
       });
 
       setContributionAmount("");
@@ -276,6 +374,47 @@ export default function GroupDetailPage() {
         title: "Copied!",
         description: "Invite code copied to clipboard",
       });
+    }
+  };
+
+  // Estado para la dirección Stellar del grupo
+  const [groupStellarAddress, setGroupStellarAddress] = useState<string | null>(
+    null
+  );
+
+  // Generar la dirección Stellar del grupo
+  useEffect(() => {
+    const getGroupStellarAddress = async () => {
+      if (group?.id) {
+        try {
+          const { StellarService } = await import("@/lib/stellar");
+          const address = await StellarService.getOrCreateGroupAccount(
+            group.id
+          );
+          setGroupStellarAddress(address);
+        } catch (error) {
+          console.error("Error getting group stellar address:", error);
+        }
+      }
+    };
+
+    getGroupStellarAddress();
+  }, [group?.id]);
+
+  const copyStellarAddress = () => {
+    if (groupStellarAddress) {
+      navigator.clipboard.writeText(groupStellarAddress);
+      toast({
+        title: "Copied!",
+        description: "Stellar contract address copied to clipboard",
+      });
+    }
+  };
+
+  const openStellarExplorer = () => {
+    if (groupStellarAddress) {
+      const explorerUrl = `https://stellar.expert/explorer/testnet/account/${groupStellarAddress}`;
+      window.open(explorerUrl, "_blank");
     }
   };
 
@@ -497,6 +636,46 @@ export default function GroupDetailPage() {
                     <Label className="text-sm font-medium">Created</Label>
                     <p className="text-sm text-gray-600 mt-1">
                       {formatDate(group.created_at)}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">
+                      Stellar Contract
+                    </Label>
+                    <div className="flex items-center space-x-2 mt-1">
+                      {groupStellarAddress ? (
+                        <>
+                          <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono flex-1 truncate">
+                            {groupStellarAddress}
+                          </code>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={copyStellarAddress}
+                            title="Copy address"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={openStellarExplorer}
+                            title="View on Stellar Explorer"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span className="text-sm text-gray-500">
+                            Loading contract address...
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      This is the Stellar account where group funds are stored
                     </p>
                   </div>
                   <div>
@@ -871,57 +1050,111 @@ export default function GroupDetailPage() {
                     {transactions.map((transaction) => (
                       <div
                         key={transaction.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
+                        className="flex flex-col space-y-3 p-4 border rounded-lg"
                       >
-                        <div className="flex items-center space-x-3">
-                          <div className="flex-shrink-0">
-                            {transaction.type === "contribution" ? (
-                              <ArrowUpRight className="h-5 w-5 text-green-500" />
-                            ) : transaction.type === "withdrawal" ? (
-                              <ArrowDownRight className="h-5 w-5 text-red-500" />
-                            ) : (
-                              <TrendingUp className="h-5 w-5 text-blue-500" />
-                            )}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                              {transaction.type === "contribution" ? (
+                                <ArrowUpRight className="h-5 w-5 text-green-500" />
+                              ) : transaction.type === "withdrawal" ? (
+                                <ArrowDownRight className="h-5 w-5 text-red-500" />
+                              ) : (
+                                <TrendingUp className="h-5 w-5 text-blue-500" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium">
+                                {transaction.description || transaction.type}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {transaction.users.full_name ||
+                                  "Anonymous User"}{" "}
+                                • {formatDate(transaction.created_at)}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">
-                              {transaction.description || transaction.type}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {transaction.users.full_name || "Anonymous User"}{" "}
-                              • {formatDate(transaction.created_at)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p
-                            className={`font-medium ${
-                              transaction.type === "contribution"
-                                ? "text-green-600"
+                          <div className="text-right">
+                            <p
+                              className={`font-medium ${
+                                transaction.type === "contribution"
+                                  ? "text-green-600"
+                                  : transaction.type === "withdrawal"
+                                    ? "text-red-600"
+                                    : "text-blue-600"
+                              }`}
+                            >
+                              {transaction.type === "contribution"
+                                ? "+"
                                 : transaction.type === "withdrawal"
-                                  ? "text-red-600"
-                                  : "text-blue-600"
-                            }`}
-                          >
-                            {transaction.type === "contribution"
-                              ? "+"
-                              : transaction.type === "withdrawal"
-                                ? "-"
-                                : "+"}
-                            {formatCurrency(Math.abs(transaction.amount))}
-                          </p>
-                          <Badge
-                            variant={
-                              transaction.status === "confirmed"
-                                ? "default"
-                                : transaction.status === "pending"
-                                  ? "secondary"
-                                  : "destructive"
-                            }
-                          >
-                            {transaction.status}
-                          </Badge>
+                                  ? "-"
+                                  : "+"}
+                              {formatCurrency(Math.abs(transaction.amount))}
+                            </p>
+                            <Badge
+                              variant={
+                                transaction.status === "confirmed"
+                                  ? "default"
+                                  : transaction.status === "pending"
+                                    ? "secondary"
+                                    : "destructive"
+                              }
+                            >
+                              {transaction.status}
+                            </Badge>
+                          </div>
                         </div>
+
+                        {/* Stellar Transaction Hash */}
+                        {transaction.stellar_transaction_id && (
+                          <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3 border-t">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              <div>
+                                <p className="text-xs font-medium text-gray-700">
+                                  Stellar Transaction
+                                </p>
+                                <code className="text-xs text-gray-600 font-mono">
+                                  {truncateAddress(
+                                    transaction.stellar_transaction_id
+                                  )}
+                                </code>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    transaction.stellar_transaction_id!
+                                  );
+                                  toast({
+                                    title: "Copied!",
+                                    description:
+                                      "Transaction hash copied to clipboard",
+                                  });
+                                }}
+                                title="Copy transaction hash"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                                onClick={() => {
+                                  const explorerUrl = `https://stellar.expert/explorer/testnet/tx/${transaction.stellar_transaction_id}`;
+                                  window.open(explorerUrl, "_blank");
+                                }}
+                                title="View on Stellar Explorer"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

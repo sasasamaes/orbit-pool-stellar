@@ -1,0 +1,11 @@
+# Claves Stellar para Community Wallet - MANTENER SEGURO
+# Generado: Mon Jul 14 00:57:20 CST 2025
+
+DEPLOYER_SECRET_KEY=
+DEPLOYER_PUBLIC_KEY=SB6QF2KAY66NYHITMHFYGYZTIIVWCR7UHFJEBHTSBVQGKZTYPBGH3BWD
+
+# Comando para verificar balance:
+# curl "https://horizon-testnet.stellar.org/accounts/SB6QF2KAY66NYHITMHFYGYZTIIVWCR7UHFJEBHTSBVQGKZTYPBGH3BWD"
+
+# Comando para fondear en testnet:
+# curl "https://friendbot.stellar.org?addr=SB6QF2KAY66NYHITMHFYGYZTIIVWCR7UHFJEBHTSBVQGKZTYPBGH3BWD"

@@ -10,7 +10,7 @@ export interface User {
   language?: string;
   email_verified: boolean;
   phone_verified: boolean;
-  kyc_status: 'pending' | 'approved' | 'rejected';
+  kyc_status: "pending" | "approved" | "rejected";
   notification_preferences: {
     email: boolean;
     push: boolean;
@@ -27,7 +27,7 @@ export interface Group {
   creator_id: string;
   stellar_account_id?: string;
   invite_code: string;
-  status: 'active' | 'paused' | 'closed';
+  status: "active" | "paused" | "closed";
   settings: {
     min_contribution: number;
     max_contribution: number;
@@ -48,25 +48,25 @@ export interface GroupMembership {
   id: string;
   group_id: string;
   user_id: string;
-  role: 'admin' | 'member' | 'pending';
+  role: "admin" | "member" | "pending";
   joined_at: string;
   total_contributed: number;
   total_withdrawn: number;
   current_balance: number;
   yield_earned: number;
-  status: 'active' | 'suspended' | 'left';
+  status: "active" | "suspended" | "left";
 }
 
 export interface Transaction {
   id: string;
   group_id: string;
   user_id: string;
-  type: 'contribution' | 'withdrawal' | 'yield_distribution' | 'fee';
+  type: "contribution" | "withdrawal" | "yield_distribution" | "fee";
   amount: number;
   fee: number;
   stellar_transaction_id?: string;
   stellar_operation_id?: string;
-  status: 'pending' | 'confirmed' | 'failed' | 'cancelled';
+  status: "pending" | "confirmed" | "failed" | "cancelled";
   description?: string;
   metadata: Record<string, any>;
   created_at: string;
@@ -79,7 +79,7 @@ export interface WithdrawalRequest {
   user_id: string;
   amount: number;
   reason?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  status: "pending" | "approved" | "rejected" | "cancelled";
   requested_at: string;
   reviewed_at?: string;
   reviewed_by?: string;
@@ -90,7 +90,7 @@ export interface WithdrawalRequest {
 export interface CreateGroupRequest {
   name: string;
   description?: string;
-  settings?: Partial<Group['settings']>;
+  settings?: Partial<Group["settings"]>;
 }
 
 export interface JoinGroupRequest {
@@ -101,4 +101,19 @@ export interface ContributionRequest {
   group_id: string;
   amount: number;
   stellar_transaction_id: string;
+  wallet_address: string;
+  asset?: string; // Default: USDC
+}
+
+export interface ContributionResponse {
+  message: string;
+  transaction: Transaction;
+  new_balance: number;
+  validation: {
+    isValid: boolean;
+    sourceAccount: string;
+    amount: number;
+    asset: string;
+    timestamp: string;
+  };
 }

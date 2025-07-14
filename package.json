@@ -77,5 +77,8 @@
   "homepage": "https://github.com/tu-usuario/communityWallet#readme",
   "bugs": {
     "url": "https://github.com/tu-usuario/communityWallet/issues"
+  },
+  "dependencies": {
+    "pg": "8.16.3"
   }
 }

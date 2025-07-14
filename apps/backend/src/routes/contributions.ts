@@ -2,21 +2,37 @@ import { Router } from "express";
 import { requireAuth, AuthenticatedRequest } from "../middleware/auth";
 import { asyncHandler, createError } from "../middleware/errorHandler";
 import { supabase } from "../index";
-import { ContributionRequest } from "../types";
+import { ContributionRequest, ContributionResponse } from "../types";
+import { StellarService } from "../services/stellar-service";
 
 const router = Router();
 
-// Record a contribution
+// Record a contribution with blockchain validation
 router.post(
   "/",
   requireAuth,
   asyncHandler(async (req: AuthenticatedRequest, res) => {
-    const { group_id, amount, stellar_transaction_id }: ContributionRequest =
-      req.body;
+    const {
+      group_id,
+      amount,
+      stellar_transaction_id,
+      wallet_address,
+      asset = "USDC",
+    }: ContributionRequest = req.body;
 
-    if (!group_id || !amount || !stellar_transaction_id) {
+    console.log("🚀 Processing contribution:", {
+      group_id,
+      amount,
+      stellar_transaction_id,
+      wallet_address,
+      asset,
+      user_id: req.user!.id,
+    });
+
+    // Validaciones básicas
+    if (!group_id || !amount || !stellar_transaction_id || !wallet_address) {
       throw createError(
-        "Group ID, amount, and Stellar transaction ID are required",
+        "Group ID, amount, Stellar transaction ID, and wallet address are required",
         400
       );
     }
@@ -25,7 +41,7 @@ router.post(
       throw createError("Amount must be positive", 400);
     }
 
-    // Verify user is a member of the group
+    // Verificar que el usuario es miembro del grupo
     const { data: membership, error: membershipError } = await supabase
       .from("group_memberships")
       .select("id, current_balance")
@@ -38,7 +54,7 @@ router.post(
       throw createError("Not a member of this group", 403);
     }
 
-    // Check if transaction already exists
+    // Verificar que la transacción no existe ya
     const { data: existingTransaction } = await supabase
       .from("transactions")
       .select("id")
@@ -49,29 +65,73 @@ router.post(
       throw createError("Transaction already recorded", 400);
     }
 
-    // Create transaction record
+    // Validar la transacción en el blockchain de Stellar
+    const stellarService = new StellarService();
+    console.log("🔍 Validating transaction on Stellar blockchain...");
+
+    const validation = await stellarService.validateTransaction(
+      stellar_transaction_id,
+      wallet_address,
+      amount,
+      asset
+    );
+
+    console.log("✅ Blockchain validation result:", validation);
+
+    if (!validation.isValid) {
+      throw createError(
+        "Transaction validation failed. Please ensure the transaction exists on Stellar blockchain and matches the provided details.",
+        400
+      );
+    }
+
+    // Actualizar la stellar_public_key del usuario si no existe
+    if (req.user!.stellar_public_key !== wallet_address) {
+      console.log("📝 Updating user stellar public key...");
+      await supabase
+        .from("users")
+        .update({ stellar_public_key: wallet_address })
+        .eq("id", req.user!.id);
+    }
+
+    // Crear registro de transacción
     const { data: transaction, error: transactionError } = await supabase
       .from("transactions")
       .insert({
         group_id,
         user_id: req.user!.id,
         type: "contribution",
-        amount,
+        amount: validation.amount || amount,
         stellar_transaction_id,
+        stellar_operation_id: validation.ledger?.toString(),
         status: "confirmed",
-        description: `Contribution to group`,
+        description: `Contribution to group from ${validation.sourceAccount}`,
+        metadata: {
+          wallet_address,
+          asset: validation.asset,
+          blockchain_validation: {
+            validated_at: new Date().toISOString(),
+            source_account: validation.sourceAccount,
+            destination_account: validation.destinationAccount,
+            actual_amount: validation.amount,
+            ledger: validation.ledger,
+            memo: validation.memo,
+          },
+        },
       })
       .select()
       .single();
 
     if (transactionError) {
+      console.error("❌ Failed to create transaction:", transactionError);
       throw createError("Failed to record transaction", 500);
     }
 
-    // Update user's balance in the group
-    const newBalance = Number(membership.current_balance) + amount;
+    // Actualizar balance del usuario en el grupo
+    const newBalance =
+      Number(membership.current_balance) + (validation.amount || amount);
 
-    // Get current total_contributed to calculate new value
+    // Obtener total_contributed actual para calcular nuevo valor
     const { data: currentMembership } = await supabase
       .from("group_memberships")
       .select("total_contributed")
@@ -79,7 +139,8 @@ router.post(
       .single();
 
     const newTotalContributed =
-      Number(currentMembership?.total_contributed || 0) + amount;
+      Number(currentMembership?.total_contributed || 0) +
+      (validation.amount || amount);
 
     const { error: balanceError } = await supabase
       .from("group_memberships")
@@ -90,17 +151,33 @@ router.post(
       .eq("id", membership.id);
 
     if (balanceError) {
+      console.error("❌ Failed to update balance:", balanceError);
       throw createError("Failed to update balance", 500);
     }
 
-    // Update group total balance
+    // Actualizar balance total del grupo
+    console.log("📊 Updating group total balance...");
     await supabase.rpc("calculate_group_balance", { group_uuid: group_id });
 
-    res.status(201).json({
-      message: "Contribution recorded successfully",
+    const response: ContributionResponse = {
+      message: "Contribution recorded and validated successfully",
       transaction,
       new_balance: newBalance,
+      validation: {
+        isValid: validation.isValid,
+        sourceAccount: validation.sourceAccount || wallet_address,
+        amount: validation.amount || amount,
+        asset: validation.asset || asset,
+        timestamp: validation.timestamp || new Date().toISOString(),
+      },
+    };
+
+    console.log("🎉 Contribution processed successfully:", {
+      transaction_id: transaction.id,
+      new_balance: newBalance,
     });
+
+    res.status(201).json(response);
   })
 );
 

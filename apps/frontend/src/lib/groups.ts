@@ -1,5 +1,6 @@
 import { ContractService } from "./contract";
 import { WalletConnection } from "./stellar";
+import { ApiClient } from "./api";
 
 export interface GroupSettings {
   minContribution: number;
@@ -251,33 +252,92 @@ export class GroupService {
    */
   static async contribute(
     params: ContributeParams,
-    walletConnection: WalletConnection
-  ): Promise<string> {
+    walletConnection: WalletConnection,
+    stellarTransactionHash: string
+  ): Promise<{
+    transactionId: string;
+    newBalance: number;
+    validation: {
+      isValid: boolean;
+      sourceAccount: string;
+      amount: number;
+      asset: string;
+      timestamp: string;
+    };
+  }> {
     try {
       if (!walletConnection.isConnected) {
         throw new Error("Wallet not connected");
       }
 
-      const walletKit = await this.contractService.getWalletConnection();
-      const { address } = await walletKit.getAddress();
-      const contractAmount = ContractService.toContractAmount(params.amount);
+      console.log("🚀 Processing contribution with backend validation:", {
+        groupId: params.groupId,
+        amount: params.amount,
+        walletAddress: walletConnection.publicKey,
+        stellarTransactionHash,
+      });
 
-      const txHash = await this.contractService.contribute(
-        {
-          contributor: address,
-          groupId: params.groupId,
-          amount: contractAmount,
-          tokenAddress: params.tokenAddress || this.DEFAULT_TOKEN_ADDRESS,
-        },
-        walletKit
-      );
+      // Enviar contribución al backend para validación blockchain
+      const response = await this.createContributionRecord({
+        group_id: params.groupId,
+        amount: params.amount,
+        stellar_transaction_id: stellarTransactionHash,
+        wallet_address: walletConnection.publicKey,
+        asset: "USDC",
+      });
 
-      console.log("Contributed to group:", { ...params, txHash });
-      return txHash;
+      console.log("✅ Contribution validated and recorded:", response);
+
+      return {
+        transactionId: response.transaction.id,
+        newBalance: response.new_balance,
+        validation: response.validation,
+      };
     } catch (error) {
-      console.error("Error contributing to group:", error);
-      throw new Error("Failed to contribute to group");
+      console.error("❌ Error processing contribution:", error);
+      throw new Error("Failed to process contribution");
     }
+  }
+
+  /**
+   * Crear registro de contribución en el backend
+   */
+  private static async createContributionRecord(contributionData: {
+    group_id: string;
+    amount: number;
+    stellar_transaction_id: string;
+    wallet_address: string;
+    asset: string;
+  }) {
+    try {
+      // Usar ApiClient que tiene la URL base correcta
+      const response = await ApiClient.createContribution(contributionData);
+      return response;
+    } catch (error) {
+      console.error("Error creating contribution record:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener token de autenticación
+   */
+  private static async getAuthToken(): Promise<string> {
+    // Usar el mismo método que ApiClient
+    const { createClientComponentClient } = await import(
+      "@supabase/auth-helpers-nextjs"
+    );
+    const supabase = createClientComponentClient();
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error("No authenticated session");
+    }
+
+    return session.access_token;
   }
 
   /**
