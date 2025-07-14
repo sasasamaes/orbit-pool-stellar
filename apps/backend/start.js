@@ -4,12 +4,32 @@ const { execSync, spawn } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
+// Debug: Show current working directory and structure
+console.log("🔍 Current working directory:", process.cwd());
+console.log("🔍 Directory contents:", fs.readdirSync("."));
+
 // Verificar si el archivo compilado existe
 const distPath = path.join(__dirname, "dist", "index.js");
+console.log("🔍 Looking for dist file at:", distPath);
+
 if (!fs.existsSync(distPath)) {
-  console.error(
-    '❌ Error: dist/index.js no encontrado. Ejecuta "npm run build" primero.'
-  );
+  console.error("❌ Error: dist/index.js no encontrado en:", distPath);
+
+  // Try to find the file in alternative locations
+  const possiblePaths = [
+    path.join(process.cwd(), "dist", "index.js"),
+    path.join(process.cwd(), "apps", "backend", "dist", "index.js"),
+    path.join(__dirname, "..", "..", "apps", "backend", "dist", "index.js"),
+  ];
+
+  console.log("🔍 Checking alternative paths...");
+  for (const altPath of possiblePaths) {
+    console.log(
+      `  - ${altPath}: ${fs.existsSync(altPath) ? "✅ EXISTS" : "❌ NOT FOUND"}`
+    );
+  }
+
+  console.error('💡 Run "npm run build" first or check build configuration.');
   process.exit(1);
 }
 
@@ -40,6 +60,7 @@ if (commandExists("bun")) {
 }
 
 // Iniciar el servidor
+console.log(`🎯 Executing: ${runtime} ${args.join(" ")}`);
 const child = spawn(runtime, args, {
   stdio: "inherit",
   env: process.env,
@@ -55,5 +76,6 @@ process.on("SIGINT", () => {
 });
 
 child.on("exit", (code) => {
+  console.log(`🏁 Process exited with code: ${code}`);
   process.exit(code);
 });

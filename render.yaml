@@ -34,7 +34,8 @@ services:
       export NODE_ENV=production
       npm install --production=false
       cd apps/backend && npm install --production=false && npm run build
-    startCommand: cd apps/backend && npm start
+      ls -la apps/backend/dist/
+    startCommand: cd apps/backend && pwd && ls -la dist/ && npm start
     envVars:
       - key: NODE_ENV
         value: production
