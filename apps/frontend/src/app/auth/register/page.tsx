@@ -90,7 +90,7 @@ export default function RegisterPage() {
             </Link>
             <h1 className="text-3xl font-bold">Get Started</h1>
             <p className="text-muted-foreground">
-              Create your Community Wallet account
+              Create your OrbitPool account
             </p>
           </div>
 

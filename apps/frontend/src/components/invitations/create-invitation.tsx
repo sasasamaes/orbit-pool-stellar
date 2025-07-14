@@ -121,7 +121,7 @@ export function CreateInvitation({
     try {
       if (navigator.share) {
         await navigator.share({
-          title: `Join "${groupName}" on Community Wallet`,
+          title: `Join "${groupName}" on OrbitPool`,
           text: message || `You're invited to join our savings group!`,
           url: link,
         });

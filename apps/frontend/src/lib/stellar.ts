@@ -1,31 +1,38 @@
 import {
   Networks,
   Horizon,
-  SorobanRpc,
   TransactionBuilder,
   Operation,
   Asset,
-  Account,
   Keypair,
+  Memo, // AGREGADO para tipos de memo
 } from "@stellar/stellar-sdk";
 
-export const STELLAR_NETWORK =
-  (process.env.NEXT_PUBLIC_STELLAR_NETWORK as "testnet" | "mainnet") ||
-  "testnet";
+export const STELLAR_NETWORK = "testnet"; // FORZAR SOLO TESTNET
+
 export const HORIZON_URL =
   process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL ||
-  "https://horizon-testnet.stellar.org";
+  (STELLAR_NETWORK === "testnet" 
+    ? "https://horizon-testnet.stellar.org"
+    : "https://horizon.stellar.org");
+
+export const SOROBAN_RPC_URL = 
+  process.env.NEXT_PUBLIC_SOROBAN_RPC_URL ||
+  (STELLAR_NETWORK === "testnet"
+    ? "https://soroban-testnet.stellar.org"
+    : "https://soroban-mainnet.stellar.org");
+
 export const NETWORK_PASSPHRASE =
   STELLAR_NETWORK === "testnet" ? Networks.TESTNET : Networks.PUBLIC;
 
 export const server = new Horizon.Server(HORIZON_URL);
 
-// USDC asset on Stellar (testnet)
+// USDC asset on Stellar - CORREGIDO con direcciones testnet válidas
 export const USDC_ASSET = new Asset(
   "USDC",
   STELLAR_NETWORK === "testnet"
-    ? "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5" // Testnet USDC issuer
-    : "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN" // Mainnet USDC issuer
+    ? "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5" // Testnet USDC correcto
+    : "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN" // Mainnet USDC
 );
 
 export interface WalletConnection {
@@ -61,6 +68,8 @@ export class StellarService {
       const assetBalance = account.balances.find(
         (balance) =>
           balance.asset_type !== "native" &&
+          'asset_code' in balance &&
+          'asset_issuer' in balance &&
           balance.asset_code === asset.code &&
           balance.asset_issuer === asset.issuer
       );
@@ -80,15 +89,18 @@ export class StellarService {
     try {
       const sourceAccount = await this.getAccountInfo(sourcePublicKey);
 
+      // CORREGIDO: Convertir fee a string
+      const baseFee = await server.fetchBaseFee();
       const transaction = new TransactionBuilder(sourceAccount, {
-        fee: await server.fetchBaseFee(),
+        fee: baseFee.toString(), // CORRECCIÓN: Convertir a string
         networkPassphrase: NETWORK_PASSPHRASE,
       });
 
       operations.forEach((op) => transaction.addOperation(op));
 
+      // CORREGIDO: Crear memo correctamente
       if (memo) {
-        transaction.addMemo(memo);
+        transaction.addMemo(Memo.text(memo)); // CORRECCIÓN: Usar Memo.text()
       }
 
       return transaction.setTimeout(300).build();
@@ -132,6 +144,30 @@ export class StellarService {
     } catch (error) {
       console.error("Error funding account:", error);
       throw new Error("Failed to fund testnet account");
+    }
+  }
+
+  // NUEVO: Método para verificar si una cuenta existe
+  static async accountExists(publicKey: string): Promise<boolean> {
+    try {
+      await this.getAccountInfo(publicKey);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // NUEVO: Método para crear trustline a USDC
+  static async createUSDCTrustline(sourcePublicKey: string) {
+    try {
+      const changeTrustOp = Operation.changeTrust({
+        asset: USDC_ASSET,
+      });
+
+      return await this.buildTransaction(sourcePublicKey, [changeTrustOp]);
+    } catch (error) {
+      console.error("Error creating USDC trustline:", error);
+      throw new Error("Failed to create USDC trustline");
     }
   }
 }

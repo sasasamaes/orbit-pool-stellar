@@ -26,7 +26,7 @@ export default function HomePage() {
           <div className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-full bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 shadow-lg shadow-violet-500/25 animate-pulse" />
             <h1 className="text-xl font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-              Community Wallet
+             OrbitPool
             </h1>
           </div>
           <nav className="hidden md:flex items-center space-x-6">
@@ -34,19 +34,19 @@ export default function HomePage() {
               href="#features"
               className="text-sm font-medium text-white hover:text-violet-400 transition-colors"
             >
-              Funciones
+              Features
             </Link>
             <Link
               href="#how-it-works"
               className="text-sm font-medium text-white hover:text-violet-400 transition-colors"
             >
-              Cómo Funciona
+              How It Works
             </Link>
             <Link
               href="#security"
               className="text-sm font-medium text-white hover:text-violet-400 transition-colors"
             >
-              Seguridad
+              Security
             </Link>
           </nav>
           <div className="flex items-center space-x-4">
@@ -55,13 +55,13 @@ export default function HomePage() {
               asChild
               className="hover:bg-violet-50 dark:hover:bg-violet-950/20 hover:text-violet-600 text-white"
             >
-              <Link href="/auth/login">Iniciar Sesión</Link>
+              <Link href="/auth/login">Sign In</Link>
             </Button>
             <Button
               asChild
               className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300"
             >
-              <Link href="/auth/register">Comenzar</Link>
+              <Link href="/auth/register">Get Started</Link>
             </Button>
           </div>
         </div>
@@ -99,16 +99,16 @@ export default function HomePage() {
           </Badge>
 
           <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 bg-clip-text text-transparent animate-fade-in-up">
-            Ahorra Juntos, Crece Juntos
+            Save Together, Grow Together
           </h1>
 
           <p
             className="text-xl text-white mb-8 max-w-2xl mx-auto animate-fade-in-up"
             style={{ animationDelay: "0.2s" }}
           >
-            Crea grupos de ahorro digitales con amigos, familia y comunidades.
-            Gana rendimientos a través de protocolos DeFi manteniendo total
-            transparencia y seguridad.
+            Create digital savings groups with friends, family, and communities.
+            Earn yields through DeFi protocols while maintaining complete
+            transparency and security.
           </p>
 
           <div
@@ -120,7 +120,7 @@ export default function HomePage() {
               className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 hover:scale-105 transition-all duration-300"
             >
               <Link href="/auth/register" className="flex items-center">
-                Crear Tu Grupo
+                Create Your Group
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -129,7 +129,7 @@ export default function HomePage() {
               size="lg"
               className="backdrop-blur-sm bg-white/10 border-violet-200 dark:border-violet-800 hover:bg-white/20 text-white hover:text-white hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-300"
             >
-              <Link href="#how-it-works">Conoce Más</Link>
+              <Link href="#how-it-works">Learn More</Link>
             </Button>
           </div>
         </div>
@@ -140,11 +140,10 @@ export default function HomePage() {
         <div className="container max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-              ¿Por Qué Elegir Community Wallet?
+              Why Choose OrbitPool?
             </h2>
             <p className="text-lg text-white max-w-2xl mx-auto">
-              Descubre las características que hacen única nuestra plataforma de
-              ahorro comunitario
+              Discover the features that make our community savings platform unique
             </p>
           </div>
 
@@ -155,11 +154,11 @@ export default function HomePage() {
                   <Users className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">
-                  Ahorro Grupal
+                  Group Savings
                 </h3>
                 <p className="text-slate-300">
-                  Crea o únete a grupos de ahorro con códigos de invitación.
-                  Perfecto para familias, amigos y comunidades.
+                  Create or join savings groups with invitation codes.
+                  Perfect for families, friends, and communities.
                 </p>
               </CardContent>
             </Card>
@@ -170,11 +169,11 @@ export default function HomePage() {
                   <TrendingUp className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">
-                  Rendimiento Automático
+                  Automatic Yields
                 </h3>
                 <p className="text-slate-300">
-                  Tus fondos grupales ganan rendimientos automáticamente a
-                  través del Protocolo Blend en la red Stellar.
+                  Your group funds earn yields automatically through
+                  the Blend Protocol on the Stellar network.
                 </p>
               </CardContent>
             </Card>
@@ -185,11 +184,11 @@ export default function HomePage() {
                   <Shield className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">
-                  Transparente y Seguro
+                  Transparent and Secure
                 </h3>
                 <p className="text-slate-300">
-                  Todas las transacciones se registran en la blockchain. Sin
-                  tarifas ocultas, transparencia completa.
+                  All transactions are recorded on the blockchain. No
+                  hidden fees, complete transparency.
                 </p>
               </CardContent>
             </Card>
@@ -200,11 +199,11 @@ export default function HomePage() {
                   <Globe className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">
-                  Acceso Global
+                  Global Access
                 </h3>
                 <p className="text-slate-300">
-                  Disponible en todo el mundo con soporte para múltiples monedas
-                  e idiomas.
+                  Available worldwide with support for multiple currencies
+                  and languages.
                 </p>
               </CardContent>
             </Card>
@@ -215,11 +214,11 @@ export default function HomePage() {
                   <Zap className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">
-                  Fácil de Usar
+                  Easy to Use
                 </h3>
                 <p className="text-slate-300">
-                  Interfaz simple diseñada para todos, desde principiantes hasta
-                  expertos en crypto.
+                  Simple interface designed for everyone, from beginners to
+                  crypto experts.
                 </p>
               </CardContent>
             </Card>
@@ -230,11 +229,10 @@ export default function HomePage() {
                   <Heart className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">
-                  Enfoque Comunitario
+                  Community Focus
                 </h3>
                 <p className="text-slate-300">
-                  Construido para comunidades reales en América Latina y más
-                  allá.
+                  Built for real communities in Latin America and beyond.
                 </p>
               </CardContent>
             </Card>
@@ -250,10 +248,10 @@ export default function HomePage() {
         <div className="container max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-              Cómo Funciona
+              How It Works
             </h2>
             <p className="text-lg text-white">
-              Tres simples pasos para comenzar tu viaje de ahorro comunitario
+              Three simple steps to start your community savings journey
             </p>
           </div>
 
@@ -263,11 +261,11 @@ export default function HomePage() {
                 1
               </div>
               <h3 className="text-xl font-semibold mb-4 text-white">
-                Crear o Unirse
+                Create or Join
               </h3>
               <p className="text-slate-300">
-                Crea un nuevo grupo de ahorro o únete a uno existente con un
-                código de invitación.
+                Create a new savings group or join an existing one with an
+                invitation code.
               </p>
             </div>
 
@@ -276,11 +274,11 @@ export default function HomePage() {
                 2
               </div>
               <h3 className="text-xl font-semibold mb-4 text-white">
-                Contribuir Fondos
+                Contribute Funds
               </h3>
               <p className="text-slate-300">
-                Conecta tu wallet de Stellar y contribuye USDC al fondo
-                compartido de tu grupo.
+                Connect your Stellar wallet and contribute USDC to your
+                group's shared fund.
               </p>
             </div>
 
@@ -289,11 +287,11 @@ export default function HomePage() {
                 3
               </div>
               <h3 className="text-xl font-semibold mb-4 text-white">
-                Ganar y Crecer
+                Earn and Grow
               </h3>
               <p className="text-slate-300">
-                Observa cómo tus ahorros colectivos crecen con rendimientos
-                automáticos de protocolos DeFi.
+                Watch your collective savings grow with automatic yields
+                from DeFi protocols.
               </p>
             </div>
           </div>
@@ -305,11 +303,11 @@ export default function HomePage() {
         <div className="container max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-              Construido para la Seguridad
+              Built for Security
             </h2>
             <p className="text-lg text-white max-w-2xl mx-auto">
-              Tus fondos están protegidos por prácticas de seguridad líderes en
-              la industria y tecnología blockchain.
+              Your funds are protected by industry-leading security practices
+              and blockchain technology.
             </p>
           </div>
 
@@ -320,11 +318,11 @@ export default function HomePage() {
                   <Lock className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">
-                  Wallets Multi-firma
+                  Multi-signature Wallets
                 </h3>
                 <p className="text-slate-300">
-                  Los fondos del grupo se mantienen en cuentas Stellar
-                  multi-firma que requieren múltiples aprobaciones para retiros.
+                  Group funds are held in Stellar multi-signature accounts
+                  that require multiple approvals for withdrawals.
                 </p>
               </CardContent>
             </Card>
@@ -335,12 +333,11 @@ export default function HomePage() {
                   <CheckCircle className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">
-                  Transparencia Blockchain
+                  Blockchain Transparency
                 </h3>
                 <p className="text-slate-300">
-                  Todas las transacciones se registran en la blockchain de
-                  Stellar, proporcionando transparencia completa y
-                  auditabilidad.
+                  All transactions are recorded on the Stellar blockchain,
+                  providing complete transparency and auditability.
                 </p>
               </CardContent>
             </Card>
@@ -351,11 +348,11 @@ export default function HomePage() {
                   <Star className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">
-                  Protocolos Auditados
+                  Audited Protocols
                 </h3>
                 <p className="text-slate-300">
-                  Utilizamos únicamente protocolos DeFi auditados y probados en
-                  el tiempo para generar rendimientos.
+                  We use only audited and time-tested DeFi protocols
+                  to generate yields.
                 </p>
               </CardContent>
             </Card>
@@ -366,11 +363,11 @@ export default function HomePage() {
                   <DollarSign className="h-6 w-6 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-white">
-                  Sin Custodia
+                  Non-Custodial
                 </h3>
                 <p className="text-slate-300">
-                  Nunca tenemos custodia de tus fondos. Tú mantienes el control
-                  total de tus activos en todo momento.
+                  We never have custody of your funds. You maintain total
+                  control of your assets at all times.
                 </p>
               </CardContent>
             </Card>
@@ -383,11 +380,11 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="container max-w-2xl mx-auto text-center relative z-10">
           <h2 className="text-3xl md:text-4xl font-bold mb-6 drop-shadow-lg">
-            ¿Listo para Comenzar a Ahorrar Juntos?
+            Ready to Start Saving Together?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Únete a miles de personas que ya usan Community Wallet para lograr
-            sus objetivos financieros.
+            Join thousands of people who already use OrbitPool to achieve
+            their financial goals.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
@@ -395,7 +392,7 @@ export default function HomePage() {
               className="bg-white text-violet-600 hover:bg-slate-100 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
             >
               <Link href="/auth/register" className="flex items-center">
-                Comenzar Ahora
+                Start Now
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -404,7 +401,7 @@ export default function HomePage() {
               variant="outline"
               className="border-white text-white hover:bg-white/10 hover:border-white/80 backdrop-blur-sm transition-all duration-300 bg-transparent"
             >
-              <Link href="#features">Conocer Más</Link>
+              <Link href="#features">Learn More</Link>
             </Button>
           </div>
         </div>
@@ -418,23 +415,23 @@ export default function HomePage() {
               <div className="flex items-center space-x-2 mb-4">
                 <div className="h-8 w-8 rounded-full bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 shadow-lg shadow-violet-500/25" />
                 <h3 className="font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-                  Community Wallet
+                OrbitPool
                 </h3>
               </div>
               <p className="text-sm text-white">
-                Democratizando el ahorro y la inversión para comunidades en todo
-                el mundo.
+                Democratizing savings and investment for communities around
+                the world.
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4 text-white">Producto</h4>
+              <h4 className="font-semibold mb-4 text-white">Product</h4>
               <ul className="space-y-2 text-sm text-slate-300">
                 <li>
                   <Link
                     href="#features"
                     className="hover:text-violet-400 transition-colors"
                   >
-                    Funciones
+                    Features
                   </Link>
                 </li>
                 <li>
@@ -442,7 +439,7 @@ export default function HomePage() {
                     href="#security"
                     className="hover:text-violet-400 transition-colors"
                   >
-                    Seguridad
+                    Security
                   </Link>
                 </li>
                 <li>
@@ -450,20 +447,20 @@ export default function HomePage() {
                     href="/docs"
                     className="hover:text-violet-400 transition-colors"
                   >
-                    Documentación
+                    Documentation
                   </Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4 text-white">Soporte</h4>
+              <h4 className="font-semibold mb-4 text-white">Support</h4>
               <ul className="space-y-2 text-sm text-slate-300">
                 <li>
                   <Link
                     href="/help"
                     className="hover:text-violet-400 transition-colors"
                   >
-                    Centro de Ayuda
+                    Help Center
                   </Link>
                 </li>
                 <li>
@@ -471,7 +468,7 @@ export default function HomePage() {
                     href="/contact"
                     className="hover:text-violet-400 transition-colors"
                   >
-                    Contacto
+                    Contact
                   </Link>
                 </li>
                 <li>
@@ -479,7 +476,7 @@ export default function HomePage() {
                     href="/community"
                     className="hover:text-violet-400 transition-colors"
                   >
-                    Comunidad
+                    Community
                   </Link>
                 </li>
               </ul>
@@ -492,7 +489,7 @@ export default function HomePage() {
                     href="/privacy"
                     className="hover:text-violet-400 transition-colors"
                   >
-                    Privacidad
+                    Privacy
                   </Link>
                 </li>
                 <li>
@@ -500,7 +497,7 @@ export default function HomePage() {
                     href="/terms"
                     className="hover:text-violet-400 transition-colors"
                   >
-                    Términos
+                    Terms
                   </Link>
                 </li>
                 <li>
@@ -515,7 +512,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800 text-center text-sm text-slate-300">
-            <p>&copy; 2024 Community Wallet. Todos los derechos reservados.</p>
+            <p>&copy; 2024 OrbitPool. All rights reserved.</p>
           </div>
         </div>
       </footer>

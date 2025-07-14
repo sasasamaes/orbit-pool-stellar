@@ -7,19 +7,19 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Community Wallet - Group Savings Platform",
+  title: "OrbitPool - Community Savings",
   description:
-    "Save and invest together with your community using blockchain technology",
+    "Decentralized savings groups powered by Stellar blockchain",
   keywords: ["savings", "community", "blockchain", "stellar", "defi", "group"],
-  authors: [{ name: "Community Wallet Team" }],
+  authors: [{ name: "OrbitPool Team" }],
   openGraph: {
-    title: "Community Wallet",
+    title: "OrbitPool",
     description: "Save and invest together with your community",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Community Wallet",
+    title: "OrbitPool",
     description: "Save and invest together with your community",
   },
   viewport: "width=device-width, initial-scale=1, maximum-scale=1",

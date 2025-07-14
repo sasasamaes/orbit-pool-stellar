@@ -122,7 +122,7 @@ export default function CreateGroupPage() {
           <div className="container flex h-16 items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-full bg-gradient-to-r from-purple-600 to-blue-600" />
-              <h1 className="text-xl font-bold">Community Wallet</h1>
+              <h1 className="text-xl font-bold">OrbitPool</h1>
             </div>
             
             <Link 

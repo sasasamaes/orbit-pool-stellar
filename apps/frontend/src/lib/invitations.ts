@@ -361,7 +361,7 @@ export class InvitationService {
     message?: string;
   }): Promise<boolean> {
     const shareData = {
-      title: `Join "${invitation.groupName}" on Community Wallet`,
+      title: `Join "${invitation.groupName}" on OrbitPool`,
       text: invitation.message || `You're invited to join our savings group!`,
       url: invitation.inviteLink,
     };
