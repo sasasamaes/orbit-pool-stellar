@@ -17,14 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useGroup } from "@/hooks/use-group";
 import { WalletConnection } from "@/lib/stellar";
 import { formatCurrency, formatDate, truncateAddress } from "@/lib/utils";
-import { GroupService, GroupData, GroupMember } from "@/lib/groups";
-import { useYield } from "@/hooks/use-yield";
-import { YieldMetrics } from "@/components/yield/yield-metrics";
-import { AutoInvestControl } from "@/components/yield/auto-invest-control";
-import { YieldHistory } from "@/components/yield/yield-history";
-import { YieldActions } from "@/components/yield/yield-actions";
+import { ApiClient } from "@/lib/api";
 import { CreateInvitation } from "@/components/invitations/create-invitation";
 import { InvitationList } from "@/components/invitations/invitation-list";
 import { useInvitations } from "@/hooks/use-invitations";
@@ -47,279 +43,161 @@ import {
   Loader2,
 } from "lucide-react";
 
-interface Transaction {
-  id: string;
-  type: "contribution" | "withdrawal" | "yield_distribution";
-  amount: number;
-  fee: number;
-  userId: string;
-  userName: string;
-  description: string;
-  stellarTxId?: string;
-  status: "pending" | "confirmed" | "failed";
-  createdAt: string;
-}
-
 export default function GroupDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const groupId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const {
+    group,
+    transactions,
+    balance,
+    isLoading,
+    error,
+    refetch,
+    refetchBalance,
+  } = useGroup(groupId);
+
   const [walletConnection, setWalletConnection] =
     useState<WalletConnection | null>(null);
-  const [group, setGroup] = useState<GroupData | null>(null);
-  const [members, setMembers] = useState<GroupMember[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [userMembership, setUserMembership] = useState<GroupMember | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "members" | "transactions" | "yield" | "invitations"
-  >("overview");
-
-  // Contribution form
   const [contributionAmount, setContributionAmount] = useState("");
   const [isContributing, setIsContributing] = useState(false);
+  const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
+  const [hasUsdcTrustline, setHasUsdcTrustline] = useState<boolean | null>(
+    null
+  );
+  const [isCheckingUSDC, setIsCheckingUSDC] = useState(false);
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "members" | "transactions" | "invitations"
+  >("overview");
 
-  const groupId = params.id as string;
+  // Get user's membership info from group data
+  const userMembership = group?.group_memberships?.find(
+    (m) => m.user_id === user?.id
+  );
+  const isAdmin = userMembership?.role === "admin";
 
-  // Yield management hook
-  const {
-    groupYieldData,
-    yieldMetrics,
-    availablePools,
-    isLoading: isYieldLoading,
-    isProcessing: isYieldProcessing,
-    enableAutoInvest,
-    disableAutoInvest,
-    depositToBlend,
-    withdrawFromBlend,
-    distributeYield,
-    refreshData: refreshYieldData,
-  } = useYield(groupId);
-
-  // Invitations management hook
+  // Invitations hook
   const {
     invitations,
-    analytics,
-    isLoading: isInvitationsLoading,
-    isProcessing: isInvitationsProcessing,
-    createInvitation,
-    sendEmailInvitation,
-    createQuickInvitation,
-    revokeInvitation,
-    copyInviteLink,
-    shareInvitation,
-    refreshData: refreshInvitationsData,
+    isLoading: invitationsLoading,
+    error: invitationsError,
+    refreshData: refetchInvitations,
   } = useInvitations(groupId);
 
   useEffect(() => {
-    if (groupId) {
-      loadGroupData();
+    if (!user) {
+      router.push("/auth/login");
     }
-  }, [groupId]);
+  }, [user, router]);
 
-  const loadGroupData = async () => {
-    setIsLoading(true);
+  // Check USDC balance and trustline when wallet connects
+  useEffect(() => {
+    if (walletConnection) {
+      checkUSDCStatus();
+    } else {
+      setUsdcBalance(null);
+      setHasUsdcTrustline(null);
+    }
+  }, [walletConnection]);
+
+  const checkUSDCStatus = async () => {
+    if (!walletConnection) return;
+
+    setIsCheckingUSDC(true);
     try {
-      // For demo purposes, create mock data based on groupId
-      // In production, this would load from smart contract
-      const mockGroupData = {
-        id: groupId,
-        name:
-          groupId === "1"
-            ? "Family Savings"
-            : groupId === "2"
-              ? "Vacation Fund"
-              : "Savings Group",
-        description:
-          groupId === "1"
-            ? "Saving for family expenses and emergencies"
-            : "Planning our next vacation together",
-        creatorId: "user1",
-        inviteCode: `ABC${groupId.padStart(3, "0")}`,
-        status: "active" as const,
-        settings: {
-          minContribution: 10,
-          maxContribution: 1000,
-          withdrawalRequiresApproval: true,
-          maxMembers: 10,
-          autoInvestEnabled: true,
-        },
-        totalBalance: groupId === "1" ? 2500.75 : 1850.0,
-        totalYield: groupId === "1" ? 125.5 : 85.25,
-        memberCount: groupId === "1" ? 4 : 6,
-        createdAt: new Date(
-          Date.now() - 30 * 24 * 60 * 60 * 1000
-        ).toISOString(), // 30 days ago
-        isActive: true,
-      };
+      const { StellarService, USDC_ASSET } = await import("@/lib/stellar");
 
-      // Mock group members
-      const mockMembers = [
-        {
-          id: "member1",
-          address: "GAXYZ123...ABC789",
-          fullName: "John Doe",
-          role: "admin" as const,
-          balance: groupId === "1" ? 625.19 : 308.33,
-          totalContributed: groupId === "1" ? 600 : 300,
-          yieldEarned: groupId === "1" ? 25.19 : 8.33,
-          joinedAt: mockGroupData.createdAt,
-          isAdmin: true,
-        },
-        {
-          id: "member2",
-          address: "GBDEF456...XYZ123",
-          fullName: "Jane Smith",
-          role: "member" as const,
-          balance: groupId === "1" ? 625.19 : 308.33,
-          totalContributed: groupId === "1" ? 600 : 300,
-          yieldEarned: groupId === "1" ? 25.19 : 8.33,
-          joinedAt: new Date(
-            Date.now() - 25 * 24 * 60 * 60 * 1000
-          ).toISOString(),
-          isAdmin: false,
-        },
-        {
-          id: "member3",
-          address: "GCHIJ789...DEF456",
-          fullName: "Mike Johnson",
-          role: "member" as const,
-          balance: groupId === "1" ? 625.19 : 308.33,
-          totalContributed: groupId === "1" ? 600 : 300,
-          yieldEarned: groupId === "1" ? 25.19 : 8.33,
-          joinedAt: new Date(
-            Date.now() - 20 * 24 * 60 * 60 * 1000
-          ).toISOString(),
-          isAdmin: false,
-        },
-      ];
+      // Check account info and balances
+      const accountInfo = await StellarService.getAccountInfo(
+        walletConnection.publicKey
+      );
 
-      // Add more members for group 2
-      if (groupId === "2") {
-        mockMembers.push(
-          {
-            id: "member4",
-            address: "GDKLM012...GHI789",
-            fullName: "Sarah Wilson",
-            role: "member" as const,
-            balance: 308.33,
-            totalContributed: 300,
-            yieldEarned: 8.33,
-            joinedAt: new Date(
-              Date.now() - 15 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            isAdmin: false,
-          },
-          {
-            id: "member5",
-            address: "GENOP345...JKL012",
-            fullName: "Tom Brown",
-            role: "member" as const,
-            balance: 308.33,
-            totalContributed: 300,
-            yieldEarned: 8.33,
-            joinedAt: new Date(
-              Date.now() - 10 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            isAdmin: false,
-          },
-          {
-            id: "member6",
-            address: "GFQRS678...MNO345",
-            fullName: "Lisa Davis",
-            role: "member" as const,
-            balance: 308.33,
-            totalContributed: 300,
-            yieldEarned: 8.33,
-            joinedAt: new Date(
-              Date.now() - 5 * 24 * 60 * 60 * 1000
-            ).toISOString(),
-            isAdmin: false,
-          }
-        );
+      // Check if USDC trustline exists
+      const usdcBalance = accountInfo.balances.find(
+        (balance: any) =>
+          balance.asset_code === "USDC" &&
+          balance.asset_issuer === USDC_ASSET.getIssuer()
+      );
+
+      if (usdcBalance) {
+        setHasUsdcTrustline(true);
+        setUsdcBalance(parseFloat(usdcBalance.balance));
+      } else {
+        setHasUsdcTrustline(false);
+        setUsdcBalance(null);
       }
-
-      // Mock transactions
-      const mockTransactions: Transaction[] = [
-        {
-          id: "1",
-          type: "contribution",
-          amount: 200,
-          fee: 0.1,
-          userId: "member1",
-          userName: "John Doe",
-          description: "Monthly contribution",
-          stellarTxId: "abc123...def456",
-          status: "confirmed",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "2",
-          type: "yield_distribution",
-          amount: 25.75,
-          fee: 0,
-          userId: "system",
-          userName: "Blend Protocol",
-          description: "Weekly yield distribution",
-          status: "confirmed",
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-        },
-        {
-          id: "3",
-          type: "contribution",
-          amount: 150,
-          fee: 0.1,
-          userId: "member2",
-          userName: "Jane Smith",
-          description: "Monthly contribution",
-          stellarTxId: "xyz789...abc123",
-          status: "confirmed",
-          createdAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-        },
-      ];
-
-      setGroup(mockGroupData);
-      setMembers(mockMembers);
-      setTransactions(mockTransactions);
-
-      // Set first member as current user for demo
-      setUserMembership(mockMembers[0]);
     } catch (error) {
-      console.error("Error loading group data:", error);
+      console.error("Error checking USDC status:", error);
+      setHasUsdcTrustline(false);
+      setUsdcBalance(null);
+    } finally {
+      setIsCheckingUSDC(false);
+    }
+  };
+
+  const createUSDCTrustline = async () => {
+    if (!walletConnection) return;
+
+    try {
+      setIsCheckingUSDC(true);
+      const { StellarService } = await import("@/lib/stellar");
+
+      // Create trustline transaction
+      const transaction = await StellarService.createUSDCTrustline(
+        walletConnection.publicKey
+      );
+
+      // Here you would normally sign and submit the transaction using the wallet
+      // For now, we'll show a message to the user
+      toast({
+        title: "Trustline Creation Required",
+        description:
+          "Please create a USDC trustline in your Stellar wallet first.",
+        variant: "default",
+      });
+
+      // Recheck status after a moment
+      setTimeout(() => {
+        checkUSDCStatus();
+      }, 2000);
+    } catch (error) {
+      console.error("Error creating USDC trustline:", error);
       toast({
         title: "Error",
-        description: "Failed to load group information.",
+        description:
+          "Failed to create USDC trustline. Please try manually in your wallet.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsCheckingUSDC(false);
     }
   };
 
   const handleContribute = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!walletConnection || !group) return;
 
-    if (!contributionAmount || !walletConnection) {
+    const amount = parseFloat(contributionAmount);
+    if (isNaN(amount) || amount <= 0) {
       toast({
-        title: "Validation Error",
-        description: "Please enter an amount and connect your wallet.",
+        title: "Error",
+        description: "Please enter a valid amount",
         variant: "destructive",
       });
       return;
     }
 
-    const amount = parseFloat(contributionAmount);
-    if (
-      amount < (group?.settings.minContribution || 0) ||
-      amount > (group?.settings.maxContribution || 0)
-    ) {
+    // Validate amount against group settings
+    const minAmount = group.settings.min_contribution || 0;
+    const maxAmount = group.settings.max_contribution || 10000;
+
+    if (amount < minAmount || amount > maxAmount) {
       toast({
         title: "Invalid Amount",
-        description: `Amount must be between $${group?.settings.minContribution} and $${group?.settings.maxContribution}.`,
+        description: `Amount must be between ${formatCurrency(minAmount)} and ${formatCurrency(maxAmount)}`,
         variant: "destructive",
       });
       return;
@@ -327,29 +205,63 @@ export default function GroupDetailPage() {
 
     setIsContributing(true);
     try {
-      // Use GroupService to contribute to the group
-      const txHash = await GroupService.contribute(
+      // Import GroupService for Stellar transaction
+      const { GroupService } = await import("@/lib/groups");
+
+      // Make the Stellar transaction using GroupService
+      console.log("🚀 Starting Stellar contribution transaction...");
+      const stellarTxId = await GroupService.contribute(
         {
-          groupId,
-          amount,
+          groupId: group.id,
+          amount: amount,
           tokenAddress:
-            "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA", // Mock USDC
+            "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5", // Testnet USDC
         },
         walletConnection
       );
 
+      console.log("✅ Stellar transaction successful:", stellarTxId);
+
+      // Register the contribution in the backend
+      console.log("📡 Registering contribution in backend...");
+      await ApiClient.createContribution({
+        group_id: group.id,
+        amount: amount,
+        stellar_transaction_id: stellarTxId,
+      });
+
+      console.log("✅ Contribution registered in backend");
+
       toast({
-        title: "Contribution Successful",
-        description: `Successfully contributed ${formatCurrency(amount)} to the group. Transaction: ${txHash.substring(0, 8)}...`,
+        title: "Contribution Successful! 🎉",
+        description: `You've contributed ${formatCurrency(amount)} to ${group.name}. Transaction: ${stellarTxId.substring(0, 8)}...`,
       });
 
       setContributionAmount("");
-      loadGroupData(); // Reload data
+      refetch(); // Refresh group data
+      refetchBalance(); // Refresh balance data
     } catch (error: any) {
-      console.error("Error contributing:", error);
+      console.error("❌ Error making contribution:", error);
+
+      let errorMessage = "Failed to process contribution. Please try again.";
+
+      // Handle specific error types
+      if (error.message?.includes("Wallet not connected")) {
+        errorMessage = "Please connect your wallet and try again.";
+      } else if (error.message?.includes("insufficient funds")) {
+        errorMessage = "Insufficient USDC balance in your wallet.";
+      } else if (error.message?.includes("Invalid amount")) {
+        errorMessage = error.message;
+      } else if (error.message?.includes("network")) {
+        errorMessage =
+          "Network error. Please check your connection and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
-        title: "Contribution Failed",
-        description: error.message || "Failed to process contribution.",
+        title: "Contribution Failed ❌",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -358,40 +270,45 @@ export default function GroupDetailPage() {
   };
 
   const copyInviteCode = () => {
-    if (group) {
-      navigator.clipboard.writeText(group.inviteCode);
+    if (group?.invite_code) {
+      navigator.clipboard.writeText(group.invite_code);
       toast({
-        title: "Invite Code Copied",
-        description: "Share this code with others to invite them to the group.",
+        title: "Copied!",
+        description: "Invite code copied to clipboard",
       });
     }
   };
 
   if (isLoading) {
     return (
-      <AuthWrapper requireAuth={true}>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Loading group...</p>
+      <AuthWrapper>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading group details...</p>
           </div>
         </div>
       </AuthWrapper>
     );
   }
 
-  if (!group) {
+  if (error || !group) {
     return (
-      <AuthWrapper requireAuth={true}>
-        <div className="min-h-screen flex items-center justify-center">
+      <AuthWrapper>
+        <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Group Not Found</h1>
-            <p className="text-muted-foreground mb-4">
-              The group you're looking for doesn't exist or you don't have
-              access to it.
+            <p className="text-red-600 mb-4">
+              Error loading group: {error || "Group not found"}
             </p>
-            <Button asChild>
-              <Link href="/dashboard">Back to Dashboard</Link>
+            <Button onClick={refetch} variant="outline">
+              Try Again
+            </Button>
+            <Button
+              onClick={() => router.push("/dashboard")}
+              variant="ghost"
+              className="ml-2"
+            >
+              Back to Dashboard
             </Button>
           </div>
         </div>
@@ -400,541 +317,175 @@ export default function GroupDetailPage() {
   }
 
   return (
-    <AuthWrapper requireAuth={true}>
-      <div className="min-h-screen bg-background">
+    <AuthWrapper>
+      <div className="min-h-screen bg-gray-50">
         {/* Header */}
-        <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-16 items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Dashboard
-              </Link>
-              <div className="h-4 w-px bg-border" />
-              <h1 className="text-xl font-bold">{group.name}</h1>
-              <Badge
-                variant={group.status === "active" ? "default" : "secondary"}
-              >
-                {group.status}
-              </Badge>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={copyInviteCode}>
-                <Copy className="mr-2 h-4 w-4" />
-                {group.inviteCode}
-              </Button>
-              {userMembership?.role === "admin" && (
-                <Button variant="ghost" size="sm">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              )}
+        <div className="bg-white border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center space-x-4">
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Dashboard
+                  </Button>
+                </Link>
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    {group.name}
+                  </h1>
+                  <p className="text-sm text-gray-500">
+                    {group.member_count} member
+                    {group.member_count !== 1 ? "s" : ""} •
+                    {isAdmin ? " Admin" : " Member"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge
+                  variant={group.status === "active" ? "default" : "secondary"}
+                >
+                  {group.status}
+                </Badge>
+                {isAdmin && (
+                  <Button variant="outline" size="sm">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
-        </header>
+        </div>
 
-        <div className="container py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Group Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Balance
-                    </CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {formatCurrency(group.totalBalance)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      +{formatCurrency(group.totalYield)} yield earned
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Your Balance
-                    </CardTitle>
-                    <Wallet className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {formatCurrency(userMembership?.balance || 0)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      +{formatCurrency(userMembership?.yieldEarned || 0)} yield
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Members
-                    </CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {group.memberCount}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      of {group.settings.maxMembers} max
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Tabs */}
-              <div className="border-b">
-                <nav className="flex space-x-8">
-                  <button
-                    onClick={() => setActiveTab("overview")}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === "overview"
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Overview
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("members")}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === "members"
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Members ({group.memberCount})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("transactions")}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === "transactions"
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Transactions
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("yield")}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === "yield"
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Yield & Investment
-                  </button>
-                  {userMembership?.role === "admin" && (
-                    <button
-                      onClick={() => setActiveTab("invitations")}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                        activeTab === "invitations"
-                          ? "border-primary text-primary"
-                          : "border-transparent text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      Invitations
-                    </button>
-                  )}
-                </nav>
-              </div>
-
-              {/* Tab Content */}
-              {activeTab === "overview" && (
-                <div className="space-y-6">
-                  {group.description && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>About</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-muted-foreground">
-                          {group.description}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Group Settings</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm font-medium">
-                            Contribution Range
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatCurrency(group.settings.minContribution)} -{" "}
-                            {formatCurrency(group.settings.maxContribution)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Auto-Investment</p>
-                          <p className="text-sm text-muted-foreground">
-                            {group.settings.autoInvestEnabled
-                              ? "Enabled"
-                              : "Disabled"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">
-                            Withdrawal Approval
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {group.settings.withdrawalRequiresApproval
-                              ? "Required"
-                              : "Not Required"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Created</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDate(group.createdAt)}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Group Balance
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(balance?.group_total || group.total_balance)}
                 </div>
-              )}
-
-              {activeTab === "members" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Group Members</CardTitle>
-                    <CardDescription>Members of {group.name}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {members.map((member) => (
-                        <div
-                          key={member.id}
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 flex items-center justify-center text-white font-medium">
-                              {member.fullName?.[0] || "U"}
-                            </div>
-                            <div>
-                              <p className="font-medium">
-                                {member.fullName || "Unknown User"}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {truncateAddress(member.address)} •
-                                <Badge
-                                  variant={
-                                    member.role === "admin"
-                                      ? "default"
-                                      : "secondary"
-                                  }
-                                  className="ml-1"
-                                >
-                                  {member.role}
-                                </Badge>
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">
-                              {formatCurrency(member.balance)}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {formatCurrency(member.totalContributed)}{" "}
-                              contributed
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {activeTab === "transactions" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Transaction History</CardTitle>
-                    <CardDescription>
-                      All group transactions and activities
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {transactions.map((transaction) => (
-                        <div
-                          key={transaction.id}
-                          className="flex items-center justify-between p-4 border rounded-lg"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div
-                              className={`p-2 rounded-full ${
-                                transaction.type === "contribution"
-                                  ? "bg-blue-100 text-blue-600"
-                                  : transaction.type === "withdrawal"
-                                    ? "bg-red-100 text-red-600"
-                                    : "bg-green-100 text-green-600"
-                              }`}
-                            >
-                              {transaction.type === "contribution" ? (
-                                <ArrowUpRight className="h-4 w-4" />
-                              ) : transaction.type === "withdrawal" ? (
-                                <ArrowDownRight className="h-4 w-4" />
-                              ) : (
-                                <TrendingUp className="h-4 w-4" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium">
-                                {transaction.description}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {transaction.userName} •{" "}
-                                {formatDate(transaction.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p
-                              className={`font-medium ${
-                                transaction.type === "contribution"
-                                  ? "text-blue-600"
-                                  : transaction.type === "withdrawal"
-                                    ? "text-red-600"
-                                    : "text-green-600"
-                              }`}
-                            >
-                              {transaction.type === "withdrawal" ? "-" : "+"}
-                              {formatCurrency(transaction.amount)}
-                            </p>
-                            <Badge
-                              variant={
-                                transaction.status === "confirmed"
-                                  ? "default"
-                                  : transaction.status === "pending"
-                                    ? "secondary"
-                                    : "destructive"
-                              }
-                            >
-                              {transaction.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {activeTab === "yield" && (
-                <div className="space-y-6">
-                  {/* Yield Metrics */}
-                  <YieldMetrics
-                    yieldInfo={yieldMetrics || undefined}
-                    groupYieldData={groupYieldData || undefined}
-                    isLoading={isYieldLoading}
-                    onRefresh={refreshYieldData}
-                  />
-
-                  {/* Auto-invest Control */}
-                  <AutoInvestControl
-                    groupId={groupId}
-                    isAutoInvestEnabled={
-                      groupYieldData?.isAutoInvestEnabled || false
-                    }
-                    currentPoolId={groupYieldData?.blendPoolId}
-                    availablePools={availablePools}
-                    walletConnection={walletConnection}
-                    isProcessing={isYieldProcessing}
-                    onEnableAutoInvest={async (poolId) => {
-                      if (walletConnection) {
-                        await enableAutoInvest(
-                          groupId,
-                          poolId,
-                          walletConnection
-                        );
-                      }
-                    }}
-                    onDisableAutoInvest={async () => {
-                      if (walletConnection) {
-                        await disableAutoInvest(groupId, walletConnection);
-                      }
-                    }}
-                  />
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Yield Actions */}
-                    <YieldActions
-                      groupId={groupId}
-                      groupYieldData={groupYieldData || undefined}
-                      walletConnection={walletConnection}
-                      isUserAdmin={userMembership?.role === "admin"}
-                      isProcessing={isYieldProcessing}
-                      onDepositToBlend={async (amount) => {
-                        if (walletConnection) {
-                          await depositToBlend(
-                            groupId,
-                            amount,
-                            walletConnection
-                          );
-                        }
-                      }}
-                      onWithdrawFromBlend={async (amount) => {
-                        if (walletConnection) {
-                          await withdrawFromBlend(
-                            groupId,
-                            amount,
-                            walletConnection
-                          );
-                        }
-                      }}
-                      onDistributeYield={async () => {
-                        if (walletConnection) {
-                          await distributeYield(groupId, walletConnection);
-                        }
-                      }}
-                    />
-
-                    {/* Yield History */}
-                    <YieldHistory
-                      yieldHistory={groupYieldData?.yieldHistory || []}
-                      isLoading={isYieldLoading}
-                      showViewAllButton={true}
-                      onViewTransaction={(txId) => {
-                        // TODO: Open transaction viewer
-                        console.log("View transaction:", txId);
-                      }}
-                    />
-                  </div>
+                <p className="text-xs text-muted-foreground">
+                  Total contributions
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Your Balance
+                </CardTitle>
+                <Wallet className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(
+                    balance?.user_balance ||
+                      userMembership?.current_balance ||
+                      0
+                  )}
                 </div>
-              )}
+                <p className="text-xs text-muted-foreground">
+                  Your contributions
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Members</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{group.member_count}</div>
+                <p className="text-xs text-muted-foreground">
+                  Max {group.settings.max_members || 50}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Yield Earned
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(userMembership?.yield_earned || 0)}
+                </div>
+                <p className="text-xs text-muted-foreground">Your yield</p>
+              </CardContent>
+            </Card>
+          </div>
 
-              {activeTab === "invitations" &&
-                userMembership?.role === "admin" && (
-                  <div className="space-y-6">
-                    {/* Create Invitation */}
-                    <CreateInvitation
-                      groupId={groupId}
-                      groupName={group?.name || "Group"}
-                      onInvitationCreated={(invitation) => {
-                        console.log("Invitation created:", invitation);
-                        refreshInvitationsData();
-                      }}
-                      onEmailSent={(result) => {
-                        console.log("Email sent:", result);
-                        refreshInvitationsData();
-                      }}
-                    />
+          {/* Navigation Tabs */}
+          <div className="border-b border-gray-200 mb-8">
+            <nav className="-mb-px flex space-x-8">
+              {[
+                { id: "overview", label: "Overview", icon: DollarSign },
+                { id: "members", label: "Members", icon: Users },
+                {
+                  id: "transactions",
+                  label: "Transactions",
+                  icon: ArrowUpRight,
+                },
+                ...(isAdmin
+                  ? [
+                      {
+                        id: "invitations",
+                        label: "Invitations",
+                        icon: UserPlus,
+                      },
+                    ]
+                  : []),
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`${
+                    activeTab === tab.id
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
+                >
+                  <tab.icon className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
 
-                    {/* Invitations List */}
-                    <InvitationList
-                      invitations={invitations}
-                      analytics={analytics}
-                      isLoading={isInvitationsLoading}
-                      onCopyLink={copyInviteLink}
-                      onShareInvitation={(invitation) => {
-                        shareInvitation(
-                          group?.name || "Group",
-                          invitation.links.secure_link,
-                          invitation.message
-                        );
-                      }}
-                      onRevokeInvitation={revokeInvitation}
-                    />
-                  </div>
-                )}
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Wallet Connection */}
-              <ConnectWallet
-                onConnection={setWalletConnection}
-                showBalance={true}
-              />
-
-              {/* Quick Actions */}
-              {walletConnection && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Contribute Funds</CardTitle>
-                    <CardDescription>
-                      Add money to the group savings
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleContribute} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="amount">Amount (USDC)</Label>
-                        <Input
-                          id="amount"
-                          type="number"
-                          min={group.settings.minContribution}
-                          max={group.settings.maxContribution}
-                          step="0.01"
-                          placeholder="0.00"
-                          value={contributionAmount}
-                          onChange={(e) =>
-                            setContributionAmount(e.target.value)
-                          }
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Min: {formatCurrency(group.settings.minContribution)}{" "}
-                          • Max:{" "}
-                          {formatCurrency(group.settings.maxContribution)}
-                        </p>
-                      </div>
-                      <Button
-                        type="submit"
-                        disabled={isContributing}
-                        className="w-full"
-                      >
-                        {isContributing ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Contributing...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="mr-2 h-4 w-4" />
-                            Contribute
-                          </>
-                        )}
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
-              )}
-
+          {/* Tab Content */}
+          {activeTab === "overview" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Group Info */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Group Info</CardTitle>
+                  <CardTitle>Group Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <p className="text-sm font-medium">Invite Code</p>
+                    <Label className="text-sm font-medium">Description</Label>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {group.description || "No description provided"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Invite Code</Label>
                     <div className="flex items-center space-x-2 mt-1">
-                      <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
-                        {group.inviteCode}
+                      <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                        {group.invite_code}
                       </code>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={copyInviteCode}
                       >
@@ -942,30 +493,456 @@ export default function GroupDetailPage() {
                       </Button>
                     </div>
                   </div>
-
                   <div>
-                    <p className="text-sm font-medium">Your Role</p>
-                    <Badge
-                      variant={
-                        userMembership?.role === "admin"
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {userMembership?.role || "member"}
-                    </Badge>
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium">Joined</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(userMembership?.joinedAt || group.createdAt)}
+                    <Label className="text-sm font-medium">Created</Label>
+                    <p className="text-sm text-gray-600 mt-1">
+                      {formatDate(group.created_at)}
                     </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Settings</Label>
+                    <div className="text-sm text-gray-600 mt-1 space-y-1">
+                      <p>
+                        Min contribution:{" "}
+                        {formatCurrency(group.settings.min_contribution || 10)}
+                      </p>
+                      <p>
+                        Max contribution:{" "}
+                        {formatCurrency(
+                          group.settings.max_contribution || 1000
+                        )}
+                      </p>
+                      <p>
+                        Auto-invest:{" "}
+                        {group.settings.auto_invest_enabled
+                          ? "Enabled"
+                          : "Disabled"}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Contribution Form */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Make a Contribution</CardTitle>
+                  <CardDescription>
+                    Add funds to the group savings pool
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <ConnectWallet
+                      onConnection={setWalletConnection}
+                      showBalance={true}
+                    />
+
+                    {!walletConnection && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div className="flex items-start space-x-3">
+                          <Wallet className="h-5 w-5 text-yellow-600 mt-0.5" />
+                          <div>
+                            <p className="text-sm text-yellow-800 font-medium mb-2">
+                              Connect Your Stellar Wallet
+                            </p>
+                            <p className="text-xs text-yellow-700 mb-3">
+                              To contribute to this group, you need to connect a
+                              Stellar wallet with USDC.
+                            </p>
+                            <div className="text-xs text-yellow-700 space-y-1">
+                              <p>
+                                <strong>Requirements:</strong>
+                              </p>
+                              <ul className="list-disc list-inside space-y-1 ml-2">
+                                <li>
+                                  Stellar wallet (like Freighter) installed and
+                                  configured
+                                </li>
+                                <li>USDC trustline established</li>
+                                <li>
+                                  Sufficient USDC balance for contribution
+                                </li>
+                                <li>
+                                  Small amount of XLM for transaction fees
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {walletConnection && (
+                      <div className="space-y-4">
+                        {/* Connection Info */}
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <p className="text-sm text-green-800 font-medium">
+                                Wallet Connected
+                              </p>
+                            </div>
+                            {isCheckingUSDC && (
+                              <Loader2 className="h-4 w-4 text-green-600 animate-spin" />
+                            )}
+                          </div>
+                          <p className="text-xs text-green-600 mt-1">
+                            {walletConnection.publicKey.substring(0, 8)}...
+                            {walletConnection.publicKey.substring(-8)}
+                          </p>
+                        </div>
+
+                        {/* USDC Status */}
+                        {hasUsdcTrustline !== null && (
+                          <div
+                            className={`rounded-lg p-3 border ${
+                              hasUsdcTrustline
+                                ? "bg-green-50 border-green-200"
+                                : "bg-red-50 border-red-200"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <div
+                                  className={`w-2 h-2 rounded-full ${
+                                    hasUsdcTrustline
+                                      ? "bg-green-500"
+                                      : "bg-red-500"
+                                  }`}
+                                ></div>
+                                <p
+                                  className={`text-sm font-medium ${
+                                    hasUsdcTrustline
+                                      ? "text-green-800"
+                                      : "text-red-800"
+                                  }`}
+                                >
+                                  USDC{" "}
+                                  {hasUsdcTrustline
+                                    ? "Ready"
+                                    : "Trustline Required"}
+                                </p>
+                              </div>
+                              {!hasUsdcTrustline && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={createUSDCTrustline}
+                                  disabled={isCheckingUSDC}
+                                >
+                                  Setup USDC
+                                </Button>
+                              )}
+                            </div>
+                            {hasUsdcTrustline && usdcBalance !== null ? (
+                              <p className="text-xs text-green-600 mt-1">
+                                Balance: {formatCurrency(usdcBalance)} USDC
+                              </p>
+                            ) : !hasUsdcTrustline ? (
+                              <p className="text-xs text-red-600 mt-1">
+                                You need to establish a trustline to USDC before
+                                contributing
+                              </p>
+                            ) : null}
+                          </div>
+                        )}
+
+                        {/* Contribution Limits */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <p className="text-sm text-blue-800 font-medium mb-1">
+                            Contribution Limits
+                          </p>
+                          <p className="text-xs text-blue-600">
+                            Min:{" "}
+                            {formatCurrency(
+                              group.settings.min_contribution || 10
+                            )}{" "}
+                            • Max:{" "}
+                            {formatCurrency(
+                              group.settings.max_contribution || 1000
+                            )}
+                          </p>
+                        </div>
+
+                        <form onSubmit={handleContribute} className="space-y-4">
+                          <div>
+                            <Label htmlFor="amount">Amount (USDC)</Label>
+                            <div className="relative">
+                              <Input
+                                id="amount"
+                                type="number"
+                                step="0.01"
+                                min={group.settings.min_contribution || 0.01}
+                                max={group.settings.max_contribution || 10000}
+                                placeholder={`Min: ${group.settings.min_contribution || 10}`}
+                                value={contributionAmount}
+                                onChange={(e) =>
+                                  setContributionAmount(e.target.value)
+                                }
+                                className="pr-16"
+                                disabled={!hasUsdcTrustline}
+                                required
+                              />
+                              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                <span className="text-sm text-gray-500 font-medium">
+                                  USDC
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-xs text-gray-500">
+                                {hasUsdcTrustline
+                                  ? `Available: ${usdcBalance !== null ? formatCurrency(usdcBalance) : "..."} USDC`
+                                  : "USDC trustline required"}
+                              </p>
+                              {usdcBalance !== null && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-0 text-xs text-blue-600 hover:text-blue-800"
+                                  onClick={checkUSDCStatus}
+                                  disabled={isCheckingUSDC}
+                                >
+                                  Refresh
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Quick Amount Buttons - Only show if trustline exists */}
+                          {hasUsdcTrustline && (
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                group.settings.min_contribution || 10,
+                                Math.floor(
+                                  ((group.settings.max_contribution || 1000) +
+                                    (group.settings.min_contribution || 10)) /
+                                    2
+                                ),
+                                group.settings.max_contribution || 1000,
+                              ].map((amount) => (
+                                <Button
+                                  key={amount}
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    setContributionAmount(amount.toString())
+                                  }
+                                  disabled={
+                                    isContributing ||
+                                    (usdcBalance !== null &&
+                                      usdcBalance < amount)
+                                  }
+                                >
+                                  {formatCurrency(amount)}
+                                </Button>
+                              ))}
+                            </div>
+                          )}
+
+                          <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={
+                              isContributing ||
+                              !hasUsdcTrustline ||
+                              !contributionAmount ||
+                              parseFloat(contributionAmount) <= 0 ||
+                              (usdcBalance !== null &&
+                                usdcBalance < parseFloat(contributionAmount))
+                            }
+                          >
+                            {isContributing ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Processing Stellar Transaction...
+                              </>
+                            ) : !hasUsdcTrustline ? (
+                              <>
+                                <Shield className="h-4 w-4 mr-2" />
+                                Setup USDC First
+                              </>
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4 mr-2" />
+                                Contribute{" "}
+                                {contributionAmount
+                                  ? formatCurrency(
+                                      parseFloat(contributionAmount)
+                                    )
+                                  : ""}{" "}
+                                USDC
+                              </>
+                            )}
+                          </Button>
+
+                          {/* Help Text */}
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                            <p className="text-xs text-gray-600">
+                              <strong>How it works:</strong> Your contribution
+                              will be sent via Stellar network using USDC. The
+                              transaction will be recorded on-chain and your
+                              balance will be updated in the group.
+                              {!hasUsdcTrustline && (
+                                <span className="block mt-1 text-amber-600">
+                                  <strong>Note:</strong> You must first
+                                  establish a USDC trustline to contribute.
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </form>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </div>
-          </div>
+          )}
+
+          {activeTab === "members" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Group Members</CardTitle>
+                <CardDescription>
+                  {group.member_count} member
+                  {group.member_count !== 1 ? "s" : ""} in this group
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {group.group_memberships.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                          <Users className="h-5 w-5 text-gray-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">
+                            {member.users.full_name || "Anonymous User"}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Joined {formatDate(member.joined_at)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center space-x-2">
+                          <Badge
+                            variant={
+                              member.role === "admin" ? "default" : "secondary"
+                            }
+                          >
+                            {member.role}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Balance: {formatCurrency(member.current_balance)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === "transactions" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Transactions</CardTitle>
+                <CardDescription>Latest activity in this group</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {transactions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <ArrowUpRight className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No transactions yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {transactions.map((transaction) => (
+                      <div
+                        key={transaction.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-shrink-0">
+                            {transaction.type === "contribution" ? (
+                              <ArrowUpRight className="h-5 w-5 text-green-500" />
+                            ) : transaction.type === "withdrawal" ? (
+                              <ArrowDownRight className="h-5 w-5 text-red-500" />
+                            ) : (
+                              <TrendingUp className="h-5 w-5 text-blue-500" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {transaction.description || transaction.type}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {transaction.users.full_name || "Anonymous User"}{" "}
+                              • {formatDate(transaction.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p
+                            className={`font-medium ${
+                              transaction.type === "contribution"
+                                ? "text-green-600"
+                                : transaction.type === "withdrawal"
+                                  ? "text-red-600"
+                                  : "text-blue-600"
+                            }`}
+                          >
+                            {transaction.type === "contribution"
+                              ? "+"
+                              : transaction.type === "withdrawal"
+                                ? "-"
+                                : "+"}
+                            {formatCurrency(Math.abs(transaction.amount))}
+                          </p>
+                          <Badge
+                            variant={
+                              transaction.status === "confirmed"
+                                ? "default"
+                                : transaction.status === "pending"
+                                  ? "secondary"
+                                  : "destructive"
+                            }
+                          >
+                            {transaction.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === "invitations" && isAdmin && (
+            <div className="space-y-8">
+              <CreateInvitation
+                groupId={groupId}
+                groupName={group.name}
+                onInvitationCreated={refetchInvitations}
+              />
+              <InvitationList
+                invitations={invitations}
+                isLoading={invitationsLoading}
+              />
+            </div>
+          )}
         </div>
       </div>
     </AuthWrapper>

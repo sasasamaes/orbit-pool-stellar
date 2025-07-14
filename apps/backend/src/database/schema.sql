@@ -272,7 +272,7 @@ BEGIN
     
     -- Update the group total balance
     UPDATE public.groups 
-    SET total_balance = calculate_group_balance.total_balance
+    SET total_balance = total_balance
     WHERE id = group_uuid;
     
     RETURN total_balance;

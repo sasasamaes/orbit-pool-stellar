@@ -1,26 +1,34 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/providers';
-import { AuthWrapper } from '@/components/auth/auth-wrapper';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { generateInviteCode } from '@/lib/utils';
-import Link from 'next/link';
-import { 
-  ArrowLeft, 
-  Users, 
-  Settings, 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers";
+import { AuthWrapper } from "@/components/auth/auth-wrapper";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { generateInviteCode } from "@/lib/utils";
+import { ApiClient } from "@/lib/api";
+import { AuthDebug } from "@/components/auth-debug";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  Users,
+  Settings,
   DollarSign,
   Shield,
   TrendingUp,
-  Loader2
-} from 'lucide-react';
+  Loader2,
+} from "lucide-react";
 
 interface GroupSettings {
   minContribution: number;
@@ -35,17 +43,17 @@ export default function CreateGroupPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
-  
+
   // Form data
-  const [groupName, setGroupName] = useState('');
-  const [description, setDescription] = useState('');
+  const [groupName, setGroupName] = useState("");
+  const [description, setDescription] = useState("");
   const [settings, setSettings] = useState<GroupSettings>({
     minContribution: 10,
     maxContribution: 1000,
-    contributionFrequency: 'monthly',
+    contributionFrequency: "monthly",
     withdrawalRequiresApproval: true,
     maxMembers: 10,
     autoInvestEnabled: true,
@@ -53,45 +61,52 @@ export default function CreateGroupPage() {
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!groupName.trim()) {
       toast({
-        title: 'Validation Error',
-        description: 'Group name is required.',
-        variant: 'destructive',
+        title: "Validation Error",
+        description: "Group name is required.",
+        variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
+      // Prepare group data for API call
       const groupData = {
         name: groupName.trim(),
         description: description.trim() || undefined,
-        settings,
-        inviteCode: generateInviteCode(),
+        settings: {
+          min_contribution: settings.minContribution,
+          max_contribution: settings.maxContribution,
+          contribution_frequency: settings.contributionFrequency,
+          withdrawal_requires_approval: settings.withdrawalRequiresApproval,
+          max_members: settings.maxMembers,
+          auto_invest_enabled: settings.autoInvestEnabled,
+        },
       };
 
-      console.log('Creating group:', groupData);
+      console.log("Creating group:", groupData);
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Make API call to create group
+      const createdGroup = (await ApiClient.createGroup(groupData)) as {
+        id: string;
+      };
 
       toast({
-        title: 'Group Created!',
+        title: "Group Created!",
         description: `${groupName} has been created successfully.`,
       });
 
-      // Redirect to dashboard or group page
-      router.push('/dashboard');
-      
+      // Redirect to the created group page
+      router.push(`/groups/${createdGroup.id}`);
     } catch (error: any) {
-      console.error('Error creating group:', error);
+      console.error("Error creating group:", error);
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to create group.',
-        variant: 'destructive',
+        title: "Error",
+        description: error.message || "Failed to create group.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -101,9 +116,9 @@ export default function CreateGroupPage() {
   const handleNext = () => {
     if (step === 1 && !groupName.trim()) {
       toast({
-        title: 'Validation Error',
-        description: 'Group name is required.',
-        variant: 'destructive',
+        title: "Validation Error",
+        description: "Group name is required.",
+        variant: "destructive",
       });
       return;
     }
@@ -124,9 +139,9 @@ export default function CreateGroupPage() {
               <div className="h-8 w-8 rounded-full bg-gradient-to-r from-purple-600 to-blue-600" />
               <h1 className="text-xl font-bold">OrbitPool</h1>
             </div>
-            
-            <Link 
-              href="/dashboard" 
+
+            <Link
+              href="/dashboard"
               className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -137,18 +152,33 @@ export default function CreateGroupPage() {
 
         <div className="container py-8">
           <div className="max-w-2xl mx-auto">
+            {/* Debug Component - Remove in production */}
+            <div className="mb-8">
+              <AuthDebug />
+            </div>
+
             {/* Progress Steps */}
             <div className="flex items-center justify-center mb-8">
               <div className="flex items-center space-x-4">
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-                  step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                }`}>
+                <div
+                  className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                    step >= 1
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
                   1
                 </div>
-                <div className={`w-16 h-1 ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-                  step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                }`}>
+                <div
+                  className={`w-16 h-1 ${step >= 2 ? "bg-primary" : "bg-muted"}`}
+                />
+                <div
+                  className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+                    step >= 2
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
                   2
                 </div>
               </div>
@@ -182,7 +212,9 @@ export default function CreateGroupPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="description">Description (Optional)</Label>
+                      <Label htmlFor="description">
+                        Description (Optional)
+                      </Label>
                       <Textarea
                         id="description"
                         placeholder="Describe the purpose of this savings group..."
@@ -230,10 +262,12 @@ export default function CreateGroupPage() {
                             type="number"
                             min="1"
                             value={settings.minContribution}
-                            onChange={(e) => setSettings(prev => ({
-                              ...prev,
-                              minContribution: Number(e.target.value)
-                            }))}
+                            onChange={(e) =>
+                              setSettings((prev) => ({
+                                ...prev,
+                                minContribution: Number(e.target.value),
+                              }))
+                            }
                           />
                         </div>
                         <div className="space-y-2">
@@ -243,10 +277,12 @@ export default function CreateGroupPage() {
                             type="number"
                             min="1"
                             value={settings.maxContribution}
-                            onChange={(e) => setSettings(prev => ({
-                              ...prev,
-                              maxContribution: Number(e.target.value)
-                            }))}
+                            onChange={(e) =>
+                              setSettings((prev) => ({
+                                ...prev,
+                                maxContribution: Number(e.target.value),
+                              }))
+                            }
                           />
                         </div>
                       </div>
@@ -266,10 +302,12 @@ export default function CreateGroupPage() {
                           min="2"
                           max="100"
                           value={settings.maxMembers}
-                          onChange={(e) => setSettings(prev => ({
-                            ...prev,
-                            maxMembers: Number(e.target.value)
-                          }))}
+                          onChange={(e) =>
+                            setSettings((prev) => ({
+                              ...prev,
+                              maxMembers: Number(e.target.value),
+                            }))
+                          }
                         />
                       </div>
                     </div>
@@ -290,10 +328,12 @@ export default function CreateGroupPage() {
                         <input
                           type="checkbox"
                           checked={settings.withdrawalRequiresApproval}
-                          onChange={(e) => setSettings(prev => ({
-                            ...prev,
-                            withdrawalRequiresApproval: e.target.checked
-                          }))}
+                          onChange={(e) =>
+                            setSettings((prev) => ({
+                              ...prev,
+                              withdrawalRequiresApproval: e.target.checked,
+                            }))
+                          }
                           className="h-4 w-4 rounded border-gray-300"
                         />
                       </div>
@@ -315,17 +355,23 @@ export default function CreateGroupPage() {
                         <input
                           type="checkbox"
                           checked={settings.autoInvestEnabled}
-                          onChange={(e) => setSettings(prev => ({
-                            ...prev,
-                            autoInvestEnabled: e.target.checked
-                          }))}
+                          onChange={(e) =>
+                            setSettings((prev) => ({
+                              ...prev,
+                              autoInvestEnabled: e.target.checked,
+                            }))
+                          }
                           className="h-4 w-4 rounded border-gray-300"
                         />
                       </div>
                     </div>
 
                     <div className="flex justify-between pt-6">
-                      <Button type="button" variant="outline" onClick={handleBack}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleBack}
+                      >
                         Back
                       </Button>
                       <Button type="submit" disabled={isLoading}>
@@ -335,7 +381,7 @@ export default function CreateGroupPage() {
                             Creating Group...
                           </>
                         ) : (
-                          'Create Group'
+                          "Create Group"
                         )}
                       </Button>
                     </div>

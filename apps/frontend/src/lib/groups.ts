@@ -1,5 +1,5 @@
-import { ContractService } from './contract';
-import { WalletConnection } from './stellar';
+import { ContractService } from "./contract";
+import { WalletConnection } from "./stellar";
 
 export interface GroupSettings {
   minContribution: number;
@@ -15,7 +15,7 @@ export interface GroupData {
   description?: string;
   creatorId: string;
   inviteCode: string;
-  status: 'active' | 'paused' | 'closed';
+  status: "active" | "paused" | "closed";
   settings: GroupSettings;
   totalBalance: number;
   totalYield: number;
@@ -30,7 +30,7 @@ export interface GroupMember {
   address: string;
   fullName?: string;
   avatarUrl?: string;
-  role: 'admin' | 'member';
+  role: "admin" | "member";
   balance: number;
   totalContributed: number;
   yieldEarned: number;
@@ -61,7 +61,8 @@ export interface WithdrawParams {
 
 export class GroupService {
   private static contractService = new ContractService();
-  private static readonly DEFAULT_TOKEN_ADDRESS = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA'; // Mock USDC
+  private static readonly DEFAULT_TOKEN_ADDRESS =
+    "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA"; // Mock USDC
 
   /**
    * Create a new group
@@ -72,18 +73,18 @@ export class GroupService {
   ): Promise<string> {
     try {
       if (!walletConnection.isConnected) {
-        throw new Error('Wallet not connected');
+        throw new Error("Wallet not connected");
       }
 
       const walletKit = await this.contractService.getWalletConnection();
-      const publicKey = await walletKit.getPublicKey();
-      
+      const { address } = await walletKit.getAddress();
+
       // Generate unique group ID
       const groupId = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       const txHash = await this.contractService.createGroup(
         {
-          creator: publicKey.publicKey,
+          creator: address,
           groupId,
           name: params.name,
           autoInvestEnabled: params.autoInvestEnabled,
@@ -91,11 +92,11 @@ export class GroupService {
         walletKit
       );
 
-      console.log('Created group:', { groupId, txHash });
+      console.log("Created group:", { groupId, txHash });
       return groupId;
     } catch (error) {
-      console.error('Error creating group:', error);
-      throw new Error('Failed to create group');
+      console.error("Error creating group:", error);
+      throw new Error("Failed to create group");
     }
   }
 
@@ -108,23 +109,23 @@ export class GroupService {
   ): Promise<string> {
     try {
       if (!walletConnection.isConnected) {
-        throw new Error('Wallet not connected');
+        throw new Error("Wallet not connected");
       }
 
       const walletKit = await this.contractService.getWalletConnection();
-      const publicKey = await walletKit.getPublicKey();
+      const { address } = await walletKit.getAddress();
 
       const txHash = await this.contractService.joinGroup(
-        publicKey.publicKey,
+        address,
         groupId,
         walletKit
       );
 
-      console.log('Joined group:', { groupId, txHash });
+      console.log("Joined group:", { groupId, txHash });
       return txHash;
     } catch (error) {
-      console.error('Error joining group:', error);
-      throw new Error('Failed to join group');
+      console.error("Error joining group:", error);
+      throw new Error("Failed to join group");
     }
   }
 
@@ -139,17 +140,21 @@ export class GroupService {
       }
 
       const memberCount = contractGroup.members.length;
-      const totalBalance = ContractService.fromContractAmount(contractGroup.total_balance);
-      const totalYield = ContractService.fromContractAmount(contractGroup.total_yield);
+      const totalBalance = ContractService.fromContractAmount(
+        contractGroup.total_balance
+      );
+      const totalYield = ContractService.fromContractAmount(
+        contractGroup.total_yield
+      );
 
       // Mock data for fields not stored in contract
       const groupData: GroupData = {
         id: contractGroup.id,
         name: contractGroup.name,
-        description: 'Group savings for common goals',
+        description: "Group savings for common goals",
         creatorId: contractGroup.creator,
         inviteCode: this.generateInviteCode(contractGroup.id),
-        status: contractGroup.is_active ? 'active' : 'closed',
+        status: contractGroup.is_active ? "active" : "closed",
         settings: {
           minContribution: 50,
           maxContribution: 1000,
@@ -167,7 +172,7 @@ export class GroupService {
 
       return groupData;
     } catch (error) {
-      console.error('Error getting group:', error);
+      console.error("Error getting group:", error);
       return null;
     }
   }
@@ -175,9 +180,7 @@ export class GroupService {
   /**
    * Get user's groups
    */
-  static async getUserGroups(
-    userAddress: string
-  ): Promise<GroupData[]> {
+  static async getUserGroups(userAddress: string): Promise<GroupData[]> {
     try {
       const groupIds = await this.contractService.getUserGroups(userAddress);
       const groups: GroupData[] = [];
@@ -191,7 +194,7 @@ export class GroupService {
 
       return groups;
     } catch (error) {
-      console.error('Error getting user groups:', error);
+      console.error("Error getting user groups:", error);
       return [];
     }
   }
@@ -201,9 +204,10 @@ export class GroupService {
    */
   static async getGroupMembers(groupId: string): Promise<GroupMember[]> {
     try {
-      const memberAddresses = await this.contractService.getGroupMembers(groupId);
+      const memberAddresses =
+        await this.contractService.getGroupMembers(groupId);
       const contractGroup = await this.contractService.getGroup(groupId);
-      
+
       if (!contractGroup) {
         return [];
       }
@@ -211,14 +215,20 @@ export class GroupService {
       const members: GroupMember[] = [];
 
       for (const memberAddress of memberAddresses) {
-        const balance = await this.contractService.getMemberBalance(groupId, memberAddress);
-        const isAdmin = await this.contractService.isGroupAdmin(groupId, memberAddress);
-        
+        const balance = await this.contractService.getMemberBalance(
+          groupId,
+          memberAddress
+        );
+        const isAdmin = await this.contractService.isGroupAdmin(
+          groupId,
+          memberAddress
+        );
+
         const member: GroupMember = {
           id: memberAddress,
           address: memberAddress,
           fullName: this.getDisplayName(memberAddress),
-          role: isAdmin ? 'admin' : 'member',
+          role: isAdmin ? "admin" : "member",
           balance: ContractService.fromContractAmount(balance),
           totalContributed: ContractService.fromContractAmount(balance), // Simplified
           yieldEarned: 0, // Would calculate from yield history
@@ -231,7 +241,7 @@ export class GroupService {
 
       return members;
     } catch (error) {
-      console.error('Error getting group members:', error);
+      console.error("Error getting group members:", error);
       return [];
     }
   }
@@ -245,16 +255,16 @@ export class GroupService {
   ): Promise<string> {
     try {
       if (!walletConnection.isConnected) {
-        throw new Error('Wallet not connected');
+        throw new Error("Wallet not connected");
       }
 
       const walletKit = await this.contractService.getWalletConnection();
-      const publicKey = await walletKit.getPublicKey();
+      const { address } = await walletKit.getAddress();
       const contractAmount = ContractService.toContractAmount(params.amount);
 
       const txHash = await this.contractService.contribute(
         {
-          contributor: publicKey.publicKey,
+          contributor: address,
           groupId: params.groupId,
           amount: contractAmount,
           tokenAddress: params.tokenAddress || this.DEFAULT_TOKEN_ADDRESS,
@@ -262,11 +272,11 @@ export class GroupService {
         walletKit
       );
 
-      console.log('Contributed to group:', { ...params, txHash });
+      console.log("Contributed to group:", { ...params, txHash });
       return txHash;
     } catch (error) {
-      console.error('Error contributing to group:', error);
-      throw new Error('Failed to contribute to group');
+      console.error("Error contributing to group:", error);
+      throw new Error("Failed to contribute to group");
     }
   }
 
@@ -279,16 +289,16 @@ export class GroupService {
   ): Promise<string> {
     try {
       if (!walletConnection.isConnected) {
-        throw new Error('Wallet not connected');
+        throw new Error("Wallet not connected");
       }
 
       const walletKit = await this.contractService.getWalletConnection();
-      const publicKey = await walletKit.getPublicKey();
+      const { address } = await walletKit.getAddress();
       const contractAmount = ContractService.toContractAmount(params.amount);
 
       const txHash = await this.contractService.withdraw(
         {
-          member: publicKey.publicKey,
+          member: address,
           groupId: params.groupId,
           amount: contractAmount,
           tokenAddress: params.tokenAddress || this.DEFAULT_TOKEN_ADDRESS,
@@ -296,11 +306,11 @@ export class GroupService {
         walletKit
       );
 
-      console.log('Withdrew from group:', { ...params, txHash });
+      console.log("Withdrew from group:", { ...params, txHash });
       return txHash;
     } catch (error) {
-      console.error('Error withdrawing from group:', error);
-      throw new Error('Failed to withdraw from group');
+      console.error("Error withdrawing from group:", error);
+      throw new Error("Failed to withdraw from group");
     }
   }
 
@@ -312,7 +322,7 @@ export class GroupService {
       const balance = await this.contractService.getGroupBalance(groupId);
       return ContractService.fromContractAmount(balance);
     } catch (error) {
-      console.error('Error getting group balance:', error);
+      console.error("Error getting group balance:", error);
       return 0;
     }
   }
@@ -320,12 +330,18 @@ export class GroupService {
   /**
    * Get member balance in a group
    */
-  static async getMemberBalance(groupId: string, memberAddress: string): Promise<number> {
+  static async getMemberBalance(
+    groupId: string,
+    memberAddress: string
+  ): Promise<number> {
     try {
-      const balance = await this.contractService.getMemberBalance(groupId, memberAddress);
+      const balance = await this.contractService.getMemberBalance(
+        groupId,
+        memberAddress
+      );
       return ContractService.fromContractAmount(balance);
     } catch (error) {
-      console.error('Error getting member balance:', error);
+      console.error("Error getting member balance:", error);
       return 0;
     }
   }
@@ -333,11 +349,14 @@ export class GroupService {
   /**
    * Check if user is group admin
    */
-  static async isGroupAdmin(groupId: string, userAddress: string): Promise<boolean> {
+  static async isGroupAdmin(
+    groupId: string,
+    userAddress: string
+  ): Promise<boolean> {
     try {
       return await this.contractService.isGroupAdmin(groupId, userAddress);
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.error("Error checking admin status:", error);
       return false;
     }
   }
@@ -349,7 +368,7 @@ export class GroupService {
     try {
       return await this.contractService.getGroupCount();
     } catch (error) {
-      console.error('Error getting group count:', error);
+      console.error("Error getting group count:", error);
       return 0;
     }
   }
@@ -359,7 +378,7 @@ export class GroupService {
    */
   private static generateInviteCode(groupId: string): string {
     // Generate a 6-character invite code from group ID
-    const hash = groupId.split('_').pop() || groupId;
+    const hash = groupId.split("_").pop() || groupId;
     return hash.substring(0, 6).toUpperCase();
   }
 
@@ -369,14 +388,14 @@ export class GroupService {
   private static getDisplayName(address: string): string {
     // Mock display names - in production this would come from user profiles
     const names = [
-      'John Doe',
-      'Jane Smith',
-      'Bob Johnson',
-      'Alice Brown',
-      'Mike Wilson',
-      'Sarah Davis',
+      "John Doe",
+      "Jane Smith",
+      "Bob Johnson",
+      "Alice Brown",
+      "Mike Wilson",
+      "Sarah Davis",
     ];
-    
+
     const index = address.charCodeAt(0) % names.length;
     return names[index];
   }

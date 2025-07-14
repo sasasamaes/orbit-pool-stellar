@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useGroups } from "@/hooks/use-groups";
 import { WalletConnection } from "@/lib/stellar";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
@@ -30,15 +31,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-interface Group {
-  id: string;
-  name: string;
-  member_count: number;
-  total_balance: number;
-  user_balance: number;
-  role: string;
-}
-
 interface Transaction {
   id: string;
   type: string;
@@ -52,7 +44,12 @@ export default function DashboardPage() {
   const { user, signOut } = useAuth();
   const [walletConnection, setWalletConnection] =
     useState<WalletConnection | null>(null);
-  const [groups, setGroups] = useState<Group[]>([]);
+  const {
+    groups,
+    isLoading: groupsLoading,
+    error: groupsError,
+    refetch,
+  } = useGroups();
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>(
     []
   );
@@ -68,26 +65,7 @@ export default function DashboardPage() {
   const loadDashboardData = async () => {
     setIsLoading(true);
     try {
-      // Mock data for now - replace with actual API calls
-      setGroups([
-        {
-          id: "1",
-          name: "Family Savings",
-          member_count: 4,
-          total_balance: 2500.75,
-          user_balance: 625.19,
-          role: "admin",
-        },
-        {
-          id: "2",
-          name: "Vacation Fund",
-          member_count: 6,
-          total_balance: 1850.0,
-          user_balance: 308.33,
-          role: "member",
-        },
-      ]);
-
+      // Mock transactions for now - replace with actual API calls later
       setRecentTransactions([
         {
           id: "1",
@@ -99,18 +77,26 @@ export default function DashboardPage() {
         },
         {
           id: "2",
-          type: "yield_distribution",
-          amount: 12.45,
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-          description: "Yield distribution",
+          type: "withdrawal",
+          amount: -50,
+          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          description: "Emergency withdrawal",
           group_name: "Vacation Fund",
+        },
+        {
+          id: "3",
+          type: "yield",
+          amount: 12.5,
+          created_at: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+          description: "Monthly yield distribution",
+          group_name: "Family Savings",
         },
       ]);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
       toast({
         title: "Error",
-        description: "Failed to load dashboard data.",
+        description: "Failed to load dashboard data",
         variant: "destructive",
       });
     } finally {
@@ -118,128 +104,211 @@ export default function DashboardPage() {
     }
   };
 
-  const totalBalance = groups.reduce(
-    (sum, group) => sum + group.user_balance,
-    0
-  );
-  const totalGroups = groups.length;
-
   const handleSignOut = async () => {
     try {
       await signOut();
-      toast({
-        title: "Signed Out",
-        description: "You have been successfully signed out.",
-      });
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
-  return (
-    <AuthWrapper requireAuth={true}>
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-16 items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-r from-purple-600 to-blue-600" />
-              <h1 className="text-xl font-bold">OrbitPool</h1>
-            </div>
+  const handleWalletConnect = (connection: WalletConnection) => {
+    setWalletConnection(connection);
+    toast({
+      title: "Wallet Connected",
+      description: `Connected to ${connection.publicKey}`,
+    });
+  };
 
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">
-                Welcome, {user?.email?.split("@")[0]}
-              </span>
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4" />
-              </Button>
+  const handleWalletDisconnect = () => {
+    setWalletConnection(null);
+    toast({
+      title: "Wallet Disconnected",
+      description: "Your wallet has been disconnected",
+    });
+  };
+
+  const totalBalance = groups.reduce(
+    (sum, group) => sum + group.user_balance,
+    0
+  );
+  const totalYield = groups.reduce(
+    (sum, group) => sum + group.total_balance * 0.05,
+    0
+  ); // Mock yield calculation
+
+  if (groupsLoading || isLoading) {
+    return (
+      <AuthWrapper>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading your dashboard...</p>
+          </div>
+        </div>
+      </AuthWrapper>
+    );
+  }
+
+  if (groupsError) {
+    return (
+      <AuthWrapper>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">
+              Error loading groups: {groupsError}
+            </p>
+            <Button onClick={refetch} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </AuthWrapper>
+    );
+  }
+
+  return (
+    <AuthWrapper>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Wallet className="h-8 w-8 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <div className="text-sm font-medium text-gray-900">
+                    Community Wallet
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Welcome back, {user?.email}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Button variant="outline" size="sm" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
             </div>
           </div>
-        </header>
+        </div>
 
-        <div className="container py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Total Balance
-                    </CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {formatCurrency(totalBalance)}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Across {totalGroups} groups
-                    </p>
-                  </CardContent>
-                </Card>
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total Balance
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(totalBalance)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  +2.5% from last month
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Active Groups
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{groups.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  Across all your savings groups
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Monthly Yield
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(totalYield)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  +12% from last month
+                </p>
+              </CardContent>
+            </Card>
+          </div>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Active Groups
-                    </CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{totalGroups}</div>
-                    <p className="text-xs text-muted-foreground">
-                      1 as admin, {totalGroups - 1} as member
-                    </p>
-                  </CardContent>
-                </Card>
+          {/* Wallet Connection */}
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Stellar Wallet</CardTitle>
+              <CardDescription>
+                Connect your Stellar wallet to make contributions and
+                withdrawals
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ConnectWallet
+                onConnection={handleWalletConnect}
+                showBalance={true}
+              />
+            </CardContent>
+          </Card>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      Monthly Yield
-                    </CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">+4.2%</div>
-                    <p className="text-xs text-muted-foreground">
-                      Via Blend Protocol
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Groups */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle>Your Groups</CardTitle>
-                    <CardDescription>
-                      Manage your savings groups and contributions
-                    </CardDescription>
-                  </div>
-                  <Button asChild>
-                    <Link href="/groups/new">
-                      <Plus className="mr-2 h-4 w-4" />
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Your Groups */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Your Groups</CardTitle>
+                  <Link href="/groups/new">
+                    <Button size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
                       New Group
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {groups.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 mb-4">No groups yet</p>
+                    <Link href="/groups/new">
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Your First Group
+                      </Button>
                     </Link>
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  {groups.length > 0 ? (
-                    <div className="space-y-4">
-                      {groups.map((group) => (
-                        <Link key={group.id} href={`/groups/${group.id}`}>
-                          <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer hover:border-primary/20">
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-2">
-                                <h3 className="font-medium">{group.name}</h3>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {groups.map((group) => {
+                      console.log("group", group);
+                      return (
+                        <Link
+                          key={group.group_id}
+                          href={`/groups/${group.group_id}`}
+                          className="block"
+                        >
+                          <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <h3 className="font-medium">
+                                  {group.group_name}
+                                </h3>
                                 <Badge
                                   variant={
                                     group.role === "admin"
@@ -250,141 +319,74 @@ export default function DashboardPage() {
                                   {group.role}
                                 </Badge>
                               </div>
-                              <p className="text-sm text-muted-foreground">
-                                {group.member_count} members •{" "}
-                                {formatCurrency(group.total_balance)} total
-                              </p>
+                              <div className="flex items-center justify-between mt-2 text-sm text-gray-500">
+                                <span>{group.member_count} members</span>
+                                <span>
+                                  Your balance:{" "}
+                                  {formatCurrency(group.user_balance)}
+                                </span>
+                              </div>
+                              <div className="mt-1 text-sm text-gray-600">
+                                Total: {formatCurrency(group.total_balance)}
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-medium">
-                                {formatCurrency(group.user_balance)}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Your balance
-                              </p>
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground ml-2" />
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
                           </div>
                         </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Users className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">
-                        No groups yet
-                      </h3>
-                      <p className="text-muted-foreground mb-4">
-                        Create your first savings group or join an existing one.
-                      </p>
-                      <Button asChild>
-                        <Link href="/groups/new">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Create Your First Group
-                        </Link>
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-              {/* Recent Transactions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
-                  <CardDescription>
-                    Your latest contributions and earnings
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {recentTransactions.length > 0 ? (
-                    <div className="space-y-4">
-                      {recentTransactions.map((transaction) => (
-                        <div
-                          key={transaction.id}
-                          className="flex items-center justify-between p-2"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div
-                              className={`p-2 rounded-full ${
-                                transaction.type === "contribution"
-                                  ? "bg-blue-100 text-blue-600"
-                                  : "bg-green-100 text-green-600"
-                              }`}
-                            >
-                              {transaction.type === "contribution" ? (
-                                <ArrowUpRight className="h-4 w-4" />
-                              ) : (
-                                <ArrowDownRight className="h-4 w-4" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium">
-                                {transaction.description}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {transaction.group_name} •{" "}
-                                {formatDate(transaction.created_at)}
-                              </p>
-                            </div>
+            {/* Recent Transactions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Transactions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentTransactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          {transaction.type === "contribution" ? (
+                            <ArrowUpRight className="h-5 w-5 text-green-500" />
+                          ) : transaction.type === "withdrawal" ? (
+                            <ArrowDownRight className="h-5 w-5 text-red-500" />
+                          ) : (
+                            <TrendingUp className="h-5 w-5 text-blue-500" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium">
+                            {transaction.description}
                           </div>
-                          <div
-                            className={`font-medium ${
-                              transaction.type === "contribution"
-                                ? "text-blue-600"
-                                : "text-green-600"
-                            }`}
-                          >
-                            {transaction.type === "contribution" ? "-" : "+"}
-                            {formatCurrency(transaction.amount)}
+                          <div className="text-sm text-gray-500">
+                            {transaction.group_name} •{" "}
+                            {formatDate(transaction.created_at)}
                           </div>
                         </div>
-                      ))}
+                      </div>
+                      <div
+                        className={`text-sm font-medium ${
+                          transaction.amount > 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {transaction.amount > 0 ? "+" : ""}
+                        {formatCurrency(Math.abs(transaction.amount))}
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground py-4">
-                      No recent activity
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Wallet Connection */}
-              <div>
-                <h2 className="text-lg font-semibold mb-4 flex items-center">
-                  <Wallet className="mr-2 h-5 w-5" />
-                  Stellar Wallet
-                </h2>
-                <ConnectWallet
-                  onConnection={setWalletConnection}
-                  showBalance={true}
-                />
-              </div>
-
-              {/* Quick Actions */}
-              {walletConnection && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <Button className="w-full" asChild>
-                      <Link href="/groups/new">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create Group
-                      </Link>
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Users className="mr-2 h-4 w-4" />
-                      Join Group
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
