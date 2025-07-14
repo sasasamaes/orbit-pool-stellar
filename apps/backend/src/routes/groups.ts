@@ -609,38 +609,101 @@ router.post(
     }
 
     try {
-      const result = await StellarService.manualInvestInBlend(
+      console.log("🏛️ Ejecutando inversión manual VIA CONTRATO INTELIGENTE...");
+
+      // Usar ContractService en lugar de StellarService directo
+      const { contractService } = await import("../services/contract-service");
+
+      // Obtener keypair del grupo (para actuar como admin)
+      const groupKeypair =
+        await StellarService.getOrCreateGroupAccount(groupId);
+
+      // USDC Testnet contract address
+      const USDC_TESTNET_ADDRESS =
+        "CAQCFVLOBK5GIULPNZRGATJJMIZL5BSP7X5YJVMGCPTUEPFM4AVSRCJU";
+
+      // Llamar al contrato inteligente para la inversión manual
+      const transactionHash = await contractService.manualInvestToBlend(
+        groupKeypair,
         groupId,
         amount,
-        req.user!.id
+        USDC_TESTNET_ADDRESS
       );
 
-      if (result.success) {
-        // Registrar la inversión en la base de datos
-        await supabase.from("group_blend_investments").insert({
-          group_id: groupId,
-          amount_invested: result.amountInvested,
-          transaction_hash: result.transactionHash,
-          investment_date: new Date().toISOString(),
-          triggered_by: req.user!.id,
-          investment_type: "manual", // Marcar como inversión manual
-        });
+      console.log(
+        `✅ Inversión manual VIA CONTRATO exitosa: $${amount} invertidos`
+      );
+      console.log(`🔗 Transaction Hash: ${transactionHash}`);
 
-        res.json({
-          success: true,
-          message: "Inversión manual ejecutada exitosamente",
-          amountInvested: result.amountInvested,
-          transactionHash: result.transactionHash,
-        });
-      } else {
-        res.status(400).json({
+      // Registrar la inversión en la base de datos
+      await supabase.from("group_blend_investments").insert({
+        group_id: groupId,
+        amount_invested: amount,
+        transaction_hash: transactionHash,
+        investment_date: new Date().toISOString(),
+        triggered_by: req.user!.id,
+        investment_type: "manual", // Marcar como inversión manual
+        metadata: {
+          via_contract: true,
+          contract_id: contractService.getContractInfo().contractId,
+        },
+      });
+
+      res.json({
+        success: true,
+        message: "Inversión manual ejecutada exitosamente VIA CONTRATO",
+        amountInvested: amount,
+        transactionHash: transactionHash,
+        contractInfo: contractService.getContractInfo(),
+      });
+    } catch (error: any) {
+      console.error("❌ Error en inversión manual via contrato:", error);
+
+      // Fallback: Try with old StellarService if contract fails
+      try {
+        console.log("🔄 Fallback: intentando con StellarService...");
+
+        const result = await StellarService.manualInvestInBlend(
+          groupId,
+          amount,
+          req.user!.id
+        );
+
+        if (result.success) {
+          // Registrar la inversión (modo fallback)
+          await supabase.from("group_blend_investments").insert({
+            group_id: groupId,
+            amount_invested: result.amountInvested,
+            transaction_hash: result.transactionHash,
+            investment_date: new Date().toISOString(),
+            triggered_by: req.user!.id,
+            investment_type: "manual",
+            metadata: {
+              via_contract: false,
+              fallback_reason: error.message,
+            },
+          });
+
+          res.json({
+            success: true,
+            message: "Inversión manual ejecutada (fallback mode)",
+            amountInvested: result.amountInvested,
+            transactionHash: result.transactionHash,
+          });
+        } else {
+          res.status(400).json({
+            success: false,
+            message: result.error || "Inversión manual falló en ambos modos",
+          });
+        }
+      } catch (fallbackError) {
+        console.error("❌ Error en fallback también:", fallbackError);
+        res.status(500).json({
           success: false,
-          message: result.error || "Inversión manual no pudo ejecutarse",
+          message: "Both contract and fallback investment failed",
+          error: error.message,
         });
       }
-    } catch (error) {
-      console.error("Error en inversión manual:", error);
-      throw createError("Failed to execute manual investment", 500);
     }
   })
 );

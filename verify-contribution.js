@@ -5,11 +5,10 @@ const groupId = "42e71fe9-215a-4bb3-ae5b-5eda142b4346";
 
 function getGroupAccount(groupId) {
   if (groupId === "42e71fe9-215a-4bb3-ae5b-5eda142b4346") {
-    const seed = crypto
-      .createHash("sha256")
-      .update("test_account_for_demo_purposes_only")
-      .digest();
-    const keypair = Keypair.fromRawEd25519Seed(seed);
+    // Usar la MISMA lógica que el frontend
+    const seed = `group-${groupId}`;
+    const hash = crypto.createHash("sha256").update(seed).digest();
+    const keypair = Keypair.fromRawEd25519Seed(hash.slice(0, 32));
     return keypair;
   }
 

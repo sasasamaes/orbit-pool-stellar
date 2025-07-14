@@ -18,14 +18,10 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   TrendingUp,
   DollarSign,
-  Calendar,
   ArrowUpRight,
   ArrowDownRight,
-  Settings,
   Loader2,
   ExternalLink,
-  Zap,
-  Target,
   PiggyBank,
   Coins,
 } from "lucide-react";
@@ -66,13 +62,8 @@ export function BlendYieldDashboard({
   const [yieldInfo, setYieldInfo] = useState<BlendYieldInfo | null>(null);
   const [investments, setInvestments] = useState<BlendInvestment[]>([]);
   const [withdrawals, setWithdrawals] = useState<BlendWithdrawal[]>([]);
-  const [nextAutoInvestDate, setNextAutoInvestDate] = useState<string | null>(
-    null
-  );
   const [isLoading, setIsLoading] = useState(true);
-  const [isAutoInvesting, setIsAutoInvesting] = useState(false);
   const [isManualInvesting, setIsManualInvesting] = useState(false);
-  const [minAmount, setMinAmount] = useState("100");
   const [manualInvestAmount, setManualInvestAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawReason, setWithdrawReason] = useState("");
@@ -90,7 +81,6 @@ export function BlendYieldDashboard({
       setYieldInfo(response.yieldInfo);
       setInvestments(response.investments || []);
       setWithdrawals(response.withdrawals || []);
-      setNextAutoInvestDate(response.nextAutoInvestDate);
     } catch (error) {
       console.error("Error loading Blend data:", error);
       toast({
@@ -100,42 +90,6 @@ export function BlendYieldDashboard({
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleAutoInvest = async () => {
-    if (!isAdmin) return;
-
-    setIsAutoInvesting(true);
-    try {
-      const response: any = await ApiClient.triggerAutoInvest(
-        groupId,
-        parseFloat(minAmount)
-      );
-
-      if (response.success) {
-        toast({
-          title: "Auto-inversión exitosa! 🎉",
-          description: `Se invirtieron ${formatCurrency(response.amountInvested)} en Blend`,
-        });
-
-        // Recargar datos
-        await loadBlendData();
-      } else {
-        toast({
-          title: "Auto-inversión no ejecutada",
-          description: response.message,
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error en auto-inversión",
-        description: error.message || "No se pudo ejecutar la auto-inversión",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAutoInvesting(false);
     }
   };
 
@@ -222,7 +176,22 @@ export function BlendYieldDashboard({
   };
 
   const openStellarExplorer = (hash: string) => {
+    // Verificar si es un hash simulado
+    if (hash.startsWith("simulated_")) {
+      toast({
+        title: "Transacción Simulada",
+        description:
+          "Esta es una transacción de prueba. No hay enlace real disponible.",
+        variant: "default",
+      });
+      return;
+    }
+
     window.open(`https://stellar.expert/explorer/testnet/tx/${hash}`, "_blank");
+  };
+
+  const isSimulatedTransaction = (hash: string) => {
+    return hash.startsWith("simulated_");
   };
 
   if (isLoading) {
@@ -241,7 +210,7 @@ export function BlendYieldDashboard({
   return (
     <div className="space-y-6">
       {/* Estadísticas de Yield */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -286,88 +255,7 @@ export function BlendYieldDashboard({
             </p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Próxima Inversión
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm font-bold">
-              {nextAutoInvestDate
-                ? formatDate(nextAutoInvestDate)
-                : "No programada"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Auto-inversión día 3
-            </p>
-          </CardContent>
-        </Card>
       </div>
-
-      {/* Controles de Auto-inversión */}
-      {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Zap className="h-5 w-5" />
-              <span>Auto-inversión en Blend</span>
-            </CardTitle>
-            <CardDescription>
-              Invierte automáticamente los fondos del grupo en Blend todos los
-              días a las 12 PM
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="minAmount">Cantidad Mínima (USDC)</Label>
-                <Input
-                  id="minAmount"
-                  type="number"
-                  value={minAmount}
-                  onChange={(e) => setMinAmount(e.target.value)}
-                  placeholder="100"
-                  min="10"
-                />
-              </div>
-              <div className="flex items-end">
-                <Button
-                  onClick={handleAutoInvest}
-                  disabled={isAutoInvesting}
-                  className="w-full"
-                >
-                  {isAutoInvesting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Ejecutando...
-                    </>
-                  ) : (
-                    <>
-                      <Target className="h-4 w-4 mr-2" />
-                      Ejecutar Auto-inversión
-                    </>
-                  )}
-                </Button>
-              </div>
-              <div className="flex items-end">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    /* Abrir configuración */
-                  }}
-                  className="w-full"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Configurar
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Inversión Manual */}
       {isAdmin && (
@@ -466,7 +354,7 @@ export function BlendYieldDashboard({
         <CardHeader>
           <CardTitle>Historial de Inversiones</CardTitle>
           <CardDescription>
-            Registro de todas las inversiones automáticas en Blend
+            Registro de todas las inversiones manuales en Blend
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -477,7 +365,7 @@ export function BlendYieldDashboard({
                 No hay inversiones registradas aún
               </p>
               <p className="text-sm text-gray-400">
-                Las inversiones automáticas aparecerán aquí
+                Las inversiones manuales aparecerán aquí
               </p>
             </div>
           ) : (
@@ -492,7 +380,7 @@ export function BlendYieldDashboard({
                       <ArrowUpRight className="h-5 w-5 text-green-500" />
                     </div>
                     <div>
-                      <p className="font-medium">Inversión Automática</p>
+                      <p className="font-medium">Inversión Manual</p>
                       <p className="text-sm text-gray-500">
                         {formatDate(investment.investment_date)}
                       </p>
@@ -503,17 +391,36 @@ export function BlendYieldDashboard({
                       +{formatCurrency(investment.amount_invested)}
                     </p>
                     <div className="flex items-center space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() =>
-                          openStellarExplorer(investment.transaction_hash)
-                        }
-                        title="Ver en Stellar Explorer"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                      </Button>
+                      {isSimulatedTransaction(investment.transaction_hash) ? (
+                        <div className="flex items-center space-x-1">
+                          <Badge variant="secondary" className="text-xs">
+                            Simulado
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 opacity-50"
+                            onClick={() =>
+                              openStellarExplorer(investment.transaction_hash)
+                            }
+                            title="Transacción simulada - No disponible en explorer"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() =>
+                            openStellarExplorer(investment.transaction_hash)
+                          }
+                          title="Ver en Stellar Explorer"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

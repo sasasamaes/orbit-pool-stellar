@@ -1,7 +1,9 @@
 import cron from "node-cron";
 import { StellarService } from "../services/stellar-service";
 import { BlendService } from "../services/blend-service";
+import { ContractService } from "../services/contract-service";
 import { createClient } from "@supabase/supabase-js";
+import { Keypair } from "@stellar/stellar-sdk";
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -9,7 +11,8 @@ const supabase = createClient(
 );
 
 /**
- * Job que ejecuta auto-inversión en Blend cada día 3 del mes a las 10:00 AM
+ * Job que ejecuta auto-inversión en Blend diariamente a las 12:00 PM
+ * ACTUALIZADO: Usa ContractService como prioridad y StellarService como fallback
  */
 export class AutoInvestJob {
   private static isRunning = false;
@@ -20,14 +23,12 @@ export class AutoInvestJob {
   static start() {
     console.log("🤖 Inicializando Auto-Invest Job...");
 
-    // Ejecutar cada día 3 del mes a las 10:00 AM
-    cron.schedule("0 10 3 * *", async () => {
+    // Ejecutar diariamente a las 12:00 PM (actualizado para coincidir con BlendService)
+    cron.schedule("0 12 * * *", async () => {
       await this.executeAutoInvestment();
     });
 
-    console.log(
-      "✅ Auto-Invest Job programado para día 3 de cada mes a las 10:00 AM"
-    );
+    console.log("✅ Auto-Invest Job programado para cada día a las 12:00 PM");
   }
 
   /**
@@ -38,9 +39,6 @@ export class AutoInvestJob {
       console.log("⏳ Auto-inversión ya en proceso, saltando ejecución");
       return;
     }
-
-    // La verificación de si debe invertir se hace por grupo individualmente
-    // ya que ahora es diariamente a las 12 PM (solo una vez por día por grupo)
 
     this.isRunning = true;
     console.log("🚀 Iniciando proceso de auto-inversión programada...");
@@ -75,12 +73,14 @@ export class AutoInvestJob {
         failed: 0,
         totalInvested: 0,
         errors: [] as string[],
+        contractInvestments: 0,
+        stellarFallbacks: 0,
       };
 
       // Procesar cada grupo
       for (const groupSetting of eligibleGroups) {
         try {
-          // Verificar si este grupo específico debe invertir (diariamente a las 12 PM)
+          // Verificar si este grupo específico debe invertir (usando la fecha del setting)
           const shouldInvest = BlendService.shouldAutoInvest(
             groupSetting.last_investment_date
           );
@@ -96,14 +96,14 @@ export class AutoInvestJob {
             `💰 Procesando grupo: ${groupSetting.groups.name} (${groupSetting.group_id})`
           );
 
-          const result = await StellarService.autoInvestInBlend(
+          const result = await this.processGroupAutoInvestment(
             groupSetting.group_id,
             groupSetting.min_amount_to_invest || 100
           );
 
           if (result.success) {
             console.log(
-              `✅ Auto-inversión exitosa para grupo ${groupSetting.groups.name}: $${result.amountInvested}`
+              `✅ Auto-inversión exitosa para grupo ${groupSetting.groups.name}: $${result.amountInvested} via ${result.method}`
             );
 
             // Registrar en base de datos
@@ -116,6 +116,8 @@ export class AutoInvestJob {
               metadata: {
                 auto_job: true,
                 job_execution_time: new Date().toISOString(),
+                investment_method: result.method,
+                via_contract: result.method === "contract",
               },
             });
 
@@ -131,6 +133,13 @@ export class AutoInvestJob {
 
             results.successful++;
             results.totalInvested += result.amountInvested || 0;
+
+            // Contar método usado
+            if (result.method === "contract") {
+              results.contractInvestments++;
+            } else {
+              results.stellarFallbacks++;
+            }
           } else {
             console.log(
               `⚠️ Auto-inversión no ejecutada para grupo ${groupSetting.groups.name}: ${result.error}`
@@ -141,7 +150,7 @@ export class AutoInvestJob {
 
           // Pausa entre grupos para no sobrecargar
           await new Promise((resolve) => setTimeout(resolve, 2000));
-        } catch (error) {
+        } catch (error: any) {
           console.error(
             `❌ Error procesando grupo ${groupSetting.group_id}:`,
             error
@@ -157,6 +166,8 @@ export class AutoInvestJob {
         exitosos: results.successful,
         fallidos: results.failed,
         totalInvertido: `$${results.totalInvested.toFixed(2)}`,
+        inversionesContrato: results.contractInvestments,
+        fallbacksStellar: results.stellarFallbacks,
         errores: results.errors,
       });
 
@@ -170,6 +181,8 @@ export class AutoInvestJob {
         errors: results.errors,
         metadata: {
           duration_ms: Date.now(),
+          contract_investments: results.contractInvestments,
+          stellar_fallbacks: results.stellarFallbacks,
         },
       });
     } catch (error) {
@@ -177,6 +190,174 @@ export class AutoInvestJob {
     } finally {
       this.isRunning = false;
       console.log("🏁 Proceso de auto-inversión completado");
+    }
+  }
+
+  /**
+   * Procesa la auto-inversión para un grupo específico
+   * PRIORIDAD 1: ContractService (contrato inteligente)
+   * FALLBACK: StellarService (método anterior)
+   */
+  private static async processGroupAutoInvestment(
+    groupId: string,
+    minAmountToInvest: number
+  ): Promise<{
+    success: boolean;
+    transactionHash?: string;
+    amountInvested?: number;
+    error?: string;
+    method?: "contract" | "stellar";
+  }> {
+    try {
+      console.log(`🤖 Iniciando auto-inversión para grupo ${groupId}...`);
+
+      // Obtener keypair del grupo
+      const groupKeypair =
+        await StellarService.getOrCreateGroupAccount(groupId);
+
+      // Verificar balance disponible antes de intentar inversión
+      const stellarService = new StellarService();
+      const hasBalance = await this.checkGroupBalance(
+        groupId,
+        minAmountToInvest
+      );
+
+      if (!hasBalance.sufficient) {
+        return {
+          success: false,
+          error: hasBalance.reason,
+        };
+      }
+
+      // OPCIÓN 1: Intentar usar el contrato inteligente primero
+      try {
+        console.log(`🏛️ Intentando auto-inversión via contrato inteligente...`);
+
+        const contractService = new ContractService();
+        const USDC_CONTRACT =
+          "CAQCFVLOBK5GIULPNZRGATJJMIZL5BSP7X5YJVMGCPTUEPFM4AVSRCJU";
+
+        const transactionHash = await contractService.manualInvestToBlend(
+          groupKeypair,
+          groupId,
+          hasBalance.investableAmount,
+          USDC_CONTRACT
+        );
+
+        console.log(
+          `✅ Auto-inversión exitosa via contrato: $${hasBalance.investableAmount}`
+        );
+
+        return {
+          success: true,
+          transactionHash,
+          amountInvested: hasBalance.investableAmount,
+          method: "contract",
+        };
+      } catch (contractError: any) {
+        console.log(
+          `⚠️ Contrato falló, usando fallback de StellarService:`,
+          contractError.message
+        );
+
+        // OPCIÓN 2: Fallback usando StellarService
+        try {
+          console.log(`🔄 Intentando auto-inversión via StellarService...`);
+
+          const result = await StellarService.manualInvestInBlend(
+            groupId,
+            hasBalance.investableAmount,
+            "auto-invest-job" // Sistema automático
+          );
+
+          if (result.success) {
+            console.log(
+              `✅ Auto-inversión exitosa via Stellar fallback: $${result.amountInvested}`
+            );
+
+            return {
+              success: true,
+              transactionHash: result.transactionHash,
+              amountInvested: result.amountInvested,
+              method: "stellar",
+            };
+          } else {
+            return {
+              success: false,
+              error: `Ambos métodos fallaron. Contrato: ${contractError.message}, Stellar: ${result.error}`,
+            };
+          }
+        } catch (stellarError: any) {
+          return {
+            success: false,
+            error: `Ambos métodos fallaron. Contrato: ${contractError.message}, Stellar: ${stellarError.message}`,
+          };
+        }
+      }
+    } catch (error: any) {
+      console.error(`❌ Error en auto-inversión para grupo ${groupId}:`, error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Verifica si el grupo tiene suficiente balance para invertir
+   */
+  private static async checkGroupBalance(
+    groupId: string,
+    minAmountToInvest: number
+  ): Promise<{
+    sufficient: boolean;
+    investableAmount: number;
+    reason?: string;
+  }> {
+    try {
+      const groupKeypair =
+        await StellarService.getOrCreateGroupAccount(groupId);
+      const stellarService = new StellarService();
+
+      // Verificar si la cuenta existe
+      const accountExists = await stellarService.accountExists(
+        groupKeypair.publicKey()
+      );
+      if (!accountExists) {
+        return {
+          sufficient: false,
+          investableAmount: 0,
+          reason: "Cuenta del grupo no está activa en Stellar",
+        };
+      }
+
+      // Obtener balance USDC
+      const usdcBalance = await stellarService.getUSDCBalance(
+        groupKeypair.publicKey()
+      );
+
+      // Reservar fondos para fees y operaciones
+      const reserveForFees = 10;
+      const investableAmount = usdcBalance - reserveForFees;
+
+      if (investableAmount < minAmountToInvest) {
+        return {
+          sufficient: false,
+          investableAmount: 0,
+          reason: `Balance insuficiente para auto-inversión. Disponible: $${investableAmount.toFixed(2)}, Mínimo: $${minAmountToInvest}`,
+        };
+      }
+
+      return {
+        sufficient: true,
+        investableAmount: Math.floor(investableAmount), // Redondear hacia abajo para evitar problemas de precisión
+      };
+    } catch (error: any) {
+      return {
+        sufficient: false,
+        investableAmount: 0,
+        reason: `Error verificando balance: ${error.message}`,
+      };
     }
   }
 

@@ -211,19 +211,17 @@ export class StellarService {
    */
   static async getOrCreateGroupAccount(groupId: string): Promise<Keypair> {
     try {
-      // HACK TEMPORAL: Para testing, usar cuenta real para el grupo específico
+      // HACK TEMPORAL: Para testing, usar la misma lógica que el frontend
       if (groupId === "42e71fe9-215a-4bb3-ae5b-5eda142b4346") {
-        // Esta es una clave temporal para testing - NO USAR EN PRODUCCIÓN
-        // La cuenta real GCBJUGK7PVCH6CUGM2HPXS6Z7OAVEQ4UD3R4ZPXORWOCZANYOGSMW5AG
         console.log("🧪 MODO TEST: Usando cuenta temporal para grupo 345");
-        // Generar un keypair que coincida con esa dirección (para testing)
-        // NOTA: Esto NO funcionará para transacciones reales, solo para verificaciones de balance
-        const seed = crypto
-          .createHash("sha256")
-          .update("test_account_for_demo_purposes_only")
-          .digest();
-        const keypair = Keypair.fromRawEd25519Seed(seed);
+        // Usar la MISMA lógica que el frontend para generar la dirección correcta
+        const seed = `group-${groupId}`;
+        const hash = crypto.createHash("sha256").update(seed).digest();
+        const keypair = Keypair.fromRawEd25519Seed(hash.slice(0, 32));
         console.log(`🧪 Generated test account: ${keypair.publicKey()}`);
+        console.log(
+          `🎯 Esta dirección debería ser: GCBJUGK7PVCH6CUGM2HPXS6Z7OAVEQ4UD3R4ZPXORWOCZANYOGSMW5AG`
+        );
         return keypair;
       }
 
