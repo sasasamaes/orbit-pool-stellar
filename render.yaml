@@ -7,8 +7,8 @@ services:
       export SHARP_IGNORE_GLOBAL_LIBVIPS=1
       export SHARP_FORCE_GLOBAL_LIBVIPS=false
       export NODE_ENV=production
-      bun install --frozen-lockfile
-      cd apps/frontend && bun run build
+      npm install --production=false
+      cd apps/frontend && npm install --production=false && npm run build
     startCommand: cd apps/frontend && npm start
     envVars:
       - key: NODE_ENV
@@ -32,8 +32,8 @@ services:
       export SHARP_IGNORE_GLOBAL_LIBVIPS=1
       export SHARP_FORCE_GLOBAL_LIBVIPS=false
       export NODE_ENV=production
-      bun install --frozen-lockfile
-      cd apps/backend && bun run build
+      npm install --production=false
+      cd apps/backend && npm install --production=false && npm run build
     startCommand: cd apps/backend && npm start
     envVars:
       - key: NODE_ENV
