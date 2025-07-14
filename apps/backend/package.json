@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target node --external @blend-capital/blend-sdk --external express-rate-limit || (echo 'TypeScript compilation failed, trying direct build...' && bun build src/index.ts --outdir dist --target node --external=*)",
+    "build": "node build.js",
     "start": "node start.js",
     "lint": "eslint src --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
